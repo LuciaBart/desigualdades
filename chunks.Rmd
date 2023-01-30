@@ -21,13 +21,15 @@ Para calcular los indicadores, en primer lugar instalamos los paquetes y activam
 
 #activar librerías
 library(tidyverse)
+library(lubridate)
 library(readxl)
 library(writexl)
 library(ggplot2)
 library(rlang)
 
 ```
-# Razón de mortalidad materna 
+# Razón de mortalidad materna
+
 Se calcula como: Muertes maternas por provincia/ nacidos vivos por provincia *fac de expansión. 
 Fuentes: nacidos vivos y registros de defunciones. 
 Indicador construido para 2019 y 2020, construido por quinquenios (2015 a 2019 y 2016 a 2020)
@@ -215,6 +217,38 @@ bp_nacer_final<- bp_nacer2 %>%
 write_xlsx(bp_nacer_final,"bp_nacer_final.xlsx")
 
 ```
+
+# Tasa de mortalidad infantil
+
+```{r }
+
+db_mort_infantil <- read.csv("tasa-mortalidad-infantil-deis-1990-2020.csv", sep=";")
+names(db_mort_infantil)
+class(db_mort_infantil$indice_tiempo)
+db_mort_infantil$indice_tiempo <- dmy(db_mort_infantil$indice_tiempo)
+class(db_mort_infantil$indice_tiempo)
+db_mort_infantil2 <- db_mort_infantil %>%
+                    mutate(ano=year(indice_tiempo)) %>% 
+                    gather(key = "provincia", value = "mort_infantil",2:26) %>% 
+                    mutate(trienio= case_when(
+                      between(ano, 2015,2017)~ "2015 - 2017",
+                      between(ano, 2018,2020)~ "2018 - 2020",
+                      between(ano, 2012,2014)~ "2012 - 2014",
+                      FALSE~ NA_character_
+                                          )) %>% 
+  
+                    filter(!is.na(trienio)) %>% 
+  
+  group_by(trienio,provincia ) %>% 
+  summarise(promedio= mean(mort_infantil)) %>% 
+  ungroup()
+
+
+
+```
+ 
+
+
 
 # tasa de fecundidad adolescente:
 Se calcula como: número de nacimientos de madres de x a x años, prov y año/ población proyectada a mitad de periodo de x a x años , mismo año y provincia
