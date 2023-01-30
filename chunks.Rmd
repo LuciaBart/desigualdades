@@ -6,7 +6,7 @@ date: '2023-01-05'
 # Resumen
 Este informe fue realizado con el objetivo bla bla...
 *hola* 
-
+hola
 # Indicadores
 Para calcular los indicadores, en primer lugar instalamos los paquetes y activamos las librerías que vamos a utilizar.
 
