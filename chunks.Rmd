@@ -2,6 +2,8 @@
 title: "Desigualdades"
 output: html_document
 date: '2023-01-05'
+editor_options: 
+  chunk_output_type: console
 ---
 # Resumen
 Este informe fue realizado con el objetivo bla bla...
@@ -44,55 +46,38 @@ base_mortalidad <- read.csv2("MINSAL-defunciones-2005-2020.csv", encoding="latin
 #mirar variables
 head(base_mortalidad)
 str(base_mortalidad)
-#table(base_mortalidad$lista_clasificacion)
-
-#exploración
 table(base_mortalidad$sexo_id)
 table(base_mortalidad$muerte_materna_clasificacion)
 
-base_mortalidad_materna <- filter(base_mortalidad, muerte_materna_clasificacion == "muerte materna" |  muerte_materna_clasificacion == "muerte materna tardia") #incluir muerte materna tardía?
+#incluir muerte materna tardía?
+#descriptivo quinquenios
+base_mortalidad_materna_quinquenios <- base_mortalidad %>% 
+  filter(muerte_materna_clasificacion == "muerte materna" |  
+         muerte_materna_clasificacion == "muerte materna tardia") %>% 
+  mutate(quinquenio = case_when(
+               between(anio, 2006,2010)~ "2006 - 2010",
+                      between(anio, 2011,2015)~ "2011 - 2015",
+                      between(anio, 2016,2020)~ "2016 - 2020",
+                      FALSE~ NA_character_
+                                          )) %>% 
+                    filter(!is.na(quinquenio)) %>% 
+    group_by(quinquenio,jurisdicion_residencia_nombre) %>% 
+  summarise(suma_quinquenio= sum(cantidad),mean=mean(cantidad)) %>% 
+  ungroup()
 
-#análisis descriptivo
-base_mortalidad_materna_1520 <- filter(base_mortalidad_materna, anio %in% c(2015:2020))
-
-str(base_mortalidad_materna_1520)
-
-analisis_descriptivo  <-base_mortalidad_materna_1520 %>%
-  group_by(anio, jurisdicion_residencia_nombre, lista_clasificacion) %>%
-  dplyr::summarise(casos=sum(cantidad))
-
-
-# seleccionar años 2019 y 2020 (por quinquenios 2015-2019 y 2016-2020)
-unique(base_mortalidad$muerte_materna_clasificacion)
-
-str(base_mortalidad_materna)
-
-base_mortalidad_materna_1620 <- filter(base_mortalidad_materna, (anio %in% c(2016:2020)))
-base_mortalidad_materna_1519 <- filter(base_mortalidad_materna, anio %in% c(2015:2019))                
-!is.na(base_mortalidad_materna_1620$muerte_materna_clasificacion)
-!is.na(base_mortalidad_materna_1519$muerte_materna_clasificacion)
-
-#chequear que muerte materna = ID 2
-table(base_mortalidad_materna_1620$sexo_id)
-table(base_mortalidad_materna_1519$sexo_id)
-
-#seleccionar columnas de interés
-str(base_mortalidad_materna_1620)
-str(base_mortalidad_materna_1519)
-
-base_motalidad_materna_2020 <- dplyr::select(base_mortalidad_materna_1620, "anio", "jurisdicion_residencia_nombre", "cie10_casusa_id", "lista_clasificacion", "grupo_edad", "muerte_materna_clasificacion", "cantidad")
-
-base_motalidad_materna_2019 <- dplyr::select(base_mortalidad_materna_1519, "anio", "jurisdicion_residencia_nombre", "cie10_casusa_id", "lista_clasificacion", "grupo_edad", "muerte_materna_clasificacion", "cantidad")
-
-muerte_materna_1620 <-base_motalidad_materna_2020 %>%
-  group_by(jurisdicion_residencia_nombre) %>%
-  dplyr::summarise(casos=sum(cantidad))
-
-muerte_materna_1519 <-base_motalidad_materna_2019 %>%
-  group_by(jurisdicion_residencia_nombre) %>%
-  dplyr::summarise(casos=sum(cantidad))
-
-
+#quinquenios 2015-2019 y 2016-2020
+base_mortalidad_materna_1519_1620 <- base_mortalidad %>% 
+  filter(muerte_materna_clasificacion == "muerte materna" |  
+         muerte_materna_clasificacion == "muerte materna tardia") %>% 
+  mutate(quinquenio = case_when(
+               between(anio, 2015,2019)~ "2015 - 2019",
+                      between(anio, 2016,2020)~ "2016 - 2020",
+                      FALSE~ NA_character_
+                                          )) %>% 
+                    filter(!is.na(quinquenio)) %>% 
+    group_by(quinquenio,jurisdicion_residencia_nombre) %>% 
+  summarise(suma_quinquenio= sum(cantidad),mean=mean(cantidad)) %>% 
+  ungroup()
 
 ```
 
@@ -107,78 +92,53 @@ base_nacidos_vivos <- read.csv2("MINSAL - Nacidos vivos 2005-2020 jurisdicción 
 str(base_nacidos_vivos)
 
 #seleccionar variables
-base_nacidos_vivos2 <- dplyr::select(base_nacidos_vivos, "anio", "jurisdicion_residencia_nombre", "nacimientos_cantidad")
+base_nacidos_vivos_quinquenios <- base_nacidos_vivos %>% 
+  mutate(quinquenio = case_when(
+               between(anio, 2006,2010)~ "2006 - 2010",
+                      between(anio, 2011,2015)~ "2011 - 2015",
+                      between(anio, 2016,2020)~ "2016 - 2020",
+                      FALSE~ NA_character_
+                                          )) %>% 
+                    filter(!is.na(quinquenio)) %>% 
+    group_by(quinquenio,jurisdicion_residencia_nombre) %>% 
+  summarise(suma_quinquenio= sum(nacimientos_cantidad),mean=mean(nacimientos_cantidad)) %>% 
+  ungroup()
 
-#filtrar rangos 2015-2019 y 2016-2020
-unique(base_nacidos_vivos2$anio)
-
-base_nacidosvivos_1620 <- filter(base_nacidos_vivos2, anio %in% c(2016:2020))
-base_nacidosvivos_1519 <- filter(base_nacidos_vivos2, anio %in% c(2015:2019))              
-
-nacidosvivos_1620_suma <-base_nacidosvivos_1620 %>%
-  group_by(jurisdicion_residencia_nombre) %>%
-  dplyr::summarise(casos=sum(nacimientos_cantidad))
-
-nacidosvivos_1519_suma <-base_nacidosvivos_1519 %>%
-  group_by(jurisdicion_residencia_nombre) %>%
-  dplyr::summarise(casos=sum(nacimientos_cantidad))
-
-nacidosvivos_1620_mean <-base_nacidosvivos_1620 %>%
-  group_by(jurisdicion_residencia_nombre) %>%
-  dplyr::summarise(casos=sum(nacimientos_cantidad))
-
-nacidosvivos_1519_mean <-base_nacidosvivos_1519 %>%
-  group_by(jurisdicion_residencia_nombre) %>%
-  dplyr::summarise(casos=sum(nacimientos_cantidad))
-
-  
-#son 52 filas porque están las columnas NA y Sin información de provincia
+base_nacidos_vivos_1519_1620 <- base_nacidos_vivos %>% 
+  mutate(quinquenio = case_when(
+               between(anio, 2015,2019)~ "2015 - 2019",
+                      between(anio, 2016,2020)~ "2016 - 2020",
+                      FALSE~ NA_character_
+                                          )) %>% 
+                    filter(!is.na(quinquenio)) %>% 
+    group_by(quinquenio,jurisdicion_residencia_nombre) %>% 
+  summarise(suma_quinquenio= sum(nacimientos_cantidad),mean=mean(nacimientos_cantidad)) %>% 
+  ungroup()
 
 ```
 
 # Finalmente, calculo la razón de mortalidad materna
 
 ```{r RMM, include=FALSE}
-###razón de mortalidad materna utilizando suma de nacidos vivos como denom
+###razón de mortalidad materna utilizando suma de nacidos vivos como denominador de suma de mm y promedio con promedio
 
 #AÑO 2019
-unidos2019_suma <- left_join(muerte_materna_1519, nacidosvivos_1519_suma, 
-              by = c("jurisdicion_residencia_nombre" = "jurisdicion_residencia_nombre"))
+unidos <- left_join(base_mortalidad_materna_1519_1620, base_nacidos_vivos_1519_1620, 
+              by = c("jurisdicion_residencia_nombre" = "jurisdicion_residencia_nombre", "quinquenio" = "quinquenio"))
 
-unidos2019_suma <- unidos2019_suma  %>%
-  mutate(RMM=casos.x/casos.y*10000)
-  
+RMM <- unidos %>% 
+  mutate(RMM_suma_19 = case_when (quinquenio == "2015 -2019" ~ suma_quinquenio.x/suma_quinquenio.y*100000)) %>% 
+  mutate(RMM_mean_19 = case_when (quinquenio == "2015 -2019" ~ 
+mean.x/mean.y*100000)) %>% 
+  mutate(RMM_suma_20 = case_when (quinquenio == "2016 -2020" ~ suma_quinquenio.x/suma_quinquenio.y*100000)) %>% 
+  mutate(RMM_mean_20 = case_when (quinquenio == "2016 -2020" ~ 
+mean.x/mean.y*100000)) 
 
-#AÑO 2020
-unidos2020_suma <- left_join(muerte_materna_1620, nacidosvivos_1620_suma, 
-              by = c("jurisdicion_residencia_nombre" = "jurisdicion_residencia_nombre"))
-
-unidos2020_suma <- unidos2020_suma  %>%
-  mutate(RMM=casos.x/casos.y*10000)
-
-###razón de mortalidad materna utilizando promedio de nacidos vivos como denom
-
-#AÑO 2019
-unidos2019_mean <- left_join(muerte_materna_1519, nacidosvivos_1519_mean, 
-              by = c("jurisdicion_residencia_nombre" = "jurisdicion_residencia_nombre"))
-
-unidos2019_mean <- unidos2019_mean  %>%
-  mutate(RMM=casos.x/casos.y*10000)
-
-
-#AÑO 2020
-unidos2020_mean <- left_join(muerte_materna_1620, nacidosvivos_1620_mean, 
-              by = c("jurisdicion_residencia_nombre" = "jurisdicion_residencia_nombre"))
-
-unidos2020_mean <- unidos2020_mean %>%
-  mutate(RMM=casos.x/casos.y*10000)
-
+        
 write_xlsx(unidos2019_suma,"RMM2019suma.xlsx")
 write_xlsx(unidos2019_mean,"RMM2019mean.xlsx")
 write_xlsx(unidos2020_suma,"RMM2020suma.xlsx")
 write_xlsx(unidos2020_mean,"RMM2020mean.xlsx")
-
-
 
 ```
 
@@ -242,8 +202,6 @@ db_mort_infantil2 <- db_mort_infantil %>%
   group_by(trienio,provincia ) %>% 
   summarise(promedio= mean(mort_infantil)) %>% 
   ungroup()
-
-
 
 ```
  
