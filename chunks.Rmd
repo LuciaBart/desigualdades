@@ -58,7 +58,7 @@ base_mortalidad_materna_quinquenios <- base_mortalidad %>%
                between(anio, 2006,2010)~ "2006 - 2010",
                       between(anio, 2011,2015)~ "2011 - 2015",
                       between(anio, 2016,2020)~ "2016 - 2020",
-                      FALSE~ NA_character_
+                      TRUE~ NA_character_
                                           )) %>% 
                     filter(!is.na(quinquenio)) %>% 
     group_by(quinquenio,jurisdicion_residencia_nombre) %>% 
@@ -69,16 +69,39 @@ base_mortalidad_materna_quinquenios <- base_mortalidad %>%
 base_mortalidad_materna_1519_1620 <- base_mortalidad %>% 
   filter(muerte_materna_clasificacion == "muerte materna" |  
          muerte_materna_clasificacion == "muerte materna tardia") %>% 
-  mutate(quinquenio = case_when(
+  mutate(Q2015_2019 = case_when(
                between(anio, 2015,2019)~ "2015 - 2019",
-                      between(anio, 2016,2020)~ "2016 - 2020",
-                      FALSE~ NA_character_
-                                          )) %>% 
-                    filter(!is.na(quinquenio)) %>% 
-    group_by(quinquenio,jurisdicion_residencia_nombre) %>% 
-  summarise(suma_quinquenio= sum(cantidad),mean=mean(cantidad)) %>% 
-  ungroup()
+                   
+                     TRUE~ "ver")) %>% 
+  mutate( Q2016_2020=case_when(
+               between( anio, 2016,2020)~ "2016 - 2020",
+                      TRUE~ "ver" ))%>% 
+  mutate(verif=case_when(
+    Q2015_2019=="ver"& Q2016_2020=="ver"~"0",
+    TRUE~"1")) %>% 
+                    filter(verif=="1") %>% 
+  gather(key="quinquenio",value = cantidad,12:13 )
+  
+  
+    group_by(jurisdicion_residencia_nombre) %>% 
+  summarise(suma_quinquenio= sum(cantidad),mean=mean(cantidad)) 
 
+
+base <- base_mortalidad %>% 
+  filter(muerte_materna_clasificacion == "muerte materna" |  
+         muerte_materna_clasificacion == "muerte materna tardia",
+         jurisdicion_residencia_nombre== "Buenos Aires") %>% 
+  group_by(anio,jurisdicion_residencia_nombre) %>% 
+  summarise(casos=sum(cantidad))
+
+barplot(base$anio, base$casos)
+
+str(base)
+g <-  ggplot(base)+
+  geom_bar(stat="identity",
+          aes(x=anio, y=casos))
+
+g
 ```
 
 # Luego se calculan los nacidos vivos, mismo período o jurisdicciones
