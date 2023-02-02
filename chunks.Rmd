@@ -32,9 +32,9 @@ library(rlang)
 ```
 # Razón de mortalidad materna
 
-Se calcula como: Muertes maternas por provincia/ nacidos vivos por provincia *fac de expansión. 
-Fuentes: nacidos vivos y registros de defunciones. 
-Indicador construido para 2019 y 2020, construido por quinquenios (2015 a 2019 y 2016 a 2020)
+###Se calcula como: Muertes maternas por provincia/ nacidos vivos por provincia *fac de expansión. 
+####Fuentes: nacidos vivos y registros de defunciones. 
+####Indicador construido para 2019 y 2020, construido por quinquenios (2015 a 2019 y 2016 a 2020)
 
 # Comenzamos por calcular las muertes maternas
 
@@ -65,14 +65,28 @@ base_mortalidad_materna_quinquenios <- base_mortalidad %>%
   summarise(suma_quinquenio= sum(cantidad),mean=mean(cantidad)) %>% 
   ungroup()
 
-#quinquenios 2015-2019 y 2016-2020
-base_mortalidad_materna_1519_1620 <- base_mortalidad %>% 
+#gráficos velu por pcia
+
+#quinquenio 2015-2019
+base_mortalidad_materna_1519 <- base_mortalidad %>% 
   filter(muerte_materna_clasificacion == "muerte materna" |  
          muerte_materna_clasificacion == "muerte materna tardia") %>% 
   mutate(quinquenio = case_when(
                between(anio, 2015,2019)~ "2015 - 2019",
-                      between(anio, 2016,2020)~ "2016 - 2020",
-                      FALSE~ NA_character_
+                     FALSE~ NA_character_
+                                          )) %>% 
+                    filter(!is.na(quinquenio)) %>% 
+    group_by(quinquenio,jurisdicion_residencia_nombre) %>% 
+  summarise(suma_quinquenio= sum(cantidad),mean=mean(cantidad)) %>% 
+  ungroup()
+
+#quinquenio 2016-2020
+base_mortalidad_materna_1620 <- base_mortalidad %>% 
+  filter(muerte_materna_clasificacion == "muerte materna" |  
+         muerte_materna_clasificacion == "muerte materna tardia") %>% 
+  mutate(quinquenio = case_when(
+               between(anio, 2016,2020)~ "2016 - 2020",
+                     FALSE~ NA_character_
                                           )) %>% 
                     filter(!is.na(quinquenio)) %>% 
     group_by(quinquenio,jurisdicion_residencia_nombre) %>% 
@@ -91,7 +105,7 @@ base_nacidos_vivos <- read.csv2("MINSAL - Nacidos vivos 2005-2020 jurisdicción 
 #mirar variables
 str(base_nacidos_vivos)
 
-#seleccionar variables
+#descriptivo quinquenios
 base_nacidos_vivos_quinquenios <- base_nacidos_vivos %>% 
   mutate(quinquenio = case_when(
                between(anio, 2006,2010)~ "2006 - 2010",
@@ -104,16 +118,28 @@ base_nacidos_vivos_quinquenios <- base_nacidos_vivos %>%
   summarise(suma_quinquenio= sum(nacimientos_cantidad),mean=mean(nacimientos_cantidad)) %>% 
   ungroup()
 
-base_nacidos_vivos_1519_1620 <- base_nacidos_vivos %>% 
+#quinquenio 2015-2019
+base_nacidos_vivos_1519 <- base_nacidos_vivos %>% 
   mutate(quinquenio = case_when(
                between(anio, 2015,2019)~ "2015 - 2019",
-                      between(anio, 2016,2020)~ "2016 - 2020",
-                      FALSE~ NA_character_
+                     FALSE~ NA_character_
                                           )) %>% 
                     filter(!is.na(quinquenio)) %>% 
     group_by(quinquenio,jurisdicion_residencia_nombre) %>% 
   summarise(suma_quinquenio= sum(nacimientos_cantidad),mean=mean(nacimientos_cantidad)) %>% 
   ungroup()
+
+#quinquenio 2016-2020
+base_nacidos_vivos_1620 <- base_nacidos_vivos %>% 
+  mutate(quinquenio = case_when(
+               between(anio, 2016,2020)~ "2016 - 2020",
+                     FALSE~ NA_character_
+                                          )) %>% 
+                    filter(!is.na(quinquenio)) %>% 
+    group_by(quinquenio,jurisdicion_residencia_nombre) %>% 
+  summarise(suma_quinquenio= sum(nacimientos_cantidad),mean=mean(nacimientos_cantidad)) %>% 
+  ungroup()
+
 
 ```
 
@@ -123,28 +149,30 @@ base_nacidos_vivos_1519_1620 <- base_nacidos_vivos %>%
 ###razón de mortalidad materna utilizando suma de nacidos vivos como denominador de suma de mm y promedio con promedio
 
 #AÑO 2019
-unidos <- left_join(base_mortalidad_materna_1519_1620, base_nacidos_vivos_1519_1620, 
+unidos_2019 <- left_join(base_mortalidad_materna_1519, base_nacidos_vivos_1519, 
               by = c("jurisdicion_residencia_nombre" = "jurisdicion_residencia_nombre", "quinquenio" = "quinquenio"))
 
-RMM <- unidos %>% 
-  mutate(RMM_suma_19 = case_when (quinquenio == "2015 -2019" ~ suma_quinquenio.x/suma_quinquenio.y*100000)) %>% 
-  mutate(RMM_mean_19 = case_when (quinquenio == "2015 -2019" ~ 
-mean.x/mean.y*100000)) %>% 
-  mutate(RMM_suma_20 = case_when (quinquenio == "2016 -2020" ~ suma_quinquenio.x/suma_quinquenio.y*100000)) %>% 
-  mutate(RMM_mean_20 = case_when (quinquenio == "2016 -2020" ~ 
-mean.x/mean.y*100000)) 
+unidos_2020 <- left_join(base_mortalidad_materna_1620, base_nacidos_vivos_1620, 
+              by = c("jurisdicion_residencia_nombre" = "jurisdicion_residencia_nombre", "quinquenio" = "quinquenio"))
+
+RMM_2019 <- unidos_2019 %>% 
+  mutate(RMM_suma_19 = suma_quinquenio.x/suma_quinquenio.y*100000) %>% 
+  mutate(RMM_mean_19 = mean.x/mean.y*100000)
+
+RMM_2020 <- unidos_2020%>% 
+  mutate(RMM_suma_20 = suma_quinquenio.x/suma_quinquenio.y*100000) %>% 
+  mutate(RMM_mean_20 = mean.x/mean.y*100000)
 
         
-write_xlsx(unidos2019_suma,"RMM2019suma.xlsx")
-write_xlsx(unidos2019_mean,"RMM2019mean.xlsx")
-write_xlsx(unidos2020_suma,"RMM2020suma.xlsx")
-write_xlsx(unidos2020_mean,"RMM2020mean.xlsx")
+write_xlsx(RMM_2019,"RMM2019.xlsx")
+write_xlsx(RMM_2020,"RMM2020.xlsx")
 
 ```
 
 # % de nacidos vivos con bajo peso al nacer:
-Se calcula como: Número de nacidos vivos con bajo peso de un año y prov/numero total de nacidos vivos de un año y prov.
-Indicador construido para 2019 y 2020
+###Se calcula como: Número de nacidos vivos con bajo peso de un año y prov/numero total de nacidos vivos de un año y prov.
+####Fuentes: base nacidos vivos
+####Indicador construido para 2019 y 2020
 
 #Se realizó el cálculo de cantidad de niños con bajo peso al nacer y la cantidad de niños sin bajo peso al nacer
 
@@ -155,26 +183,16 @@ base_nacidos_vivos <- read.csv2("MINSAL - Nacidos vivos 2005-2020 jurisdicción 
 str(base_nacidos_vivos)
 unique(base_nacidos_vivos$intervalo_peso_al_nacer)
 
-base_nacidos_vivos2 <- base_nacidos_vivos %>% 
-  mutate(bp = case_when(intervalo_peso_al_nacer == "1.Menor de 500" | intervalo_peso_al_nacer == "2.500 a 999"  | intervalo_peso_al_nacer == "3.1000 a 1499" | intervalo_peso_al_nacer ==  "4.1500 a 1999" | intervalo_peso_al_nacer ==  "5.2000 a 2499"~ "si", TRUE~ "no"))
+indicador_bajopesoalnacer <- base_nacidos_vivos %>% 
+  mutate(bp = case_when(intervalo_peso_al_nacer == "1.Menor de 500" | intervalo_peso_al_nacer == "2.500 a 999"  | intervalo_peso_al_nacer == "3.1000 a 1499" | intervalo_peso_al_nacer ==  "4.1500 a 1999" | intervalo_peso_al_nacer ==  "5.2000 a 2499"~ "si", TRUE~ "no")) %>% 
+  dplyr::filter(anio == "2019" | anio == "2020") %>% 
+  select(anio, jurisdicion_residencia_nombre, nacimientos_cantidad, bp) %>%
+  group_by(anio, jurisdicion_residencia_nombre, bp) %>% 
+  dplyr::summarise(casos=sum(nacimientos_cantidad)) %>% 
+  pivot_wider(names_from = bp, values_from = casos) %>% 
+  mutate(indicador = si/(no+si)*100)
 
-base_nacidos_vivos_2019_ibp <- base_nacidos_vivos2 %>%
-  dplyr::filter(anio == "2019")
-
-base_nacidos_vivos_2020_ibp <- base_nacidos_vivos2 %>%
-  dplyr::filter(anio == "2020")
-
-bp_nacer <- base_nacidos_vivos_2019_ibp %>%
-  group_by(jurisdicion_residencia_nombre, bp) %>%
-  dplyr::summarise(casos=sum(nacimientos_cantidad))
-
-bp_nacer2 <- bp_nacer %>%
-  pivot_wider(names_from = bp, values_from = casos)
-
-bp_nacer_final<- bp_nacer2 %>%
-  mutate(indicador = si/no*100)
-
-write_xlsx(bp_nacer_final,"bp_nacer_final.xlsx")
+write_xlsx(indicador_bajopesoalnacer,"indicador_bajopesoalnacer.xlsx")
 
 ```
 
@@ -206,13 +224,12 @@ db_mort_infantil2 <- db_mort_infantil %>%
 ```
  
 
-
-
 # tasa de fecundidad adolescente:
-Se calcula como: número de nacimientos de madres de x a x años, prov y año/ población proyectada a mitad de periodo de x a x años , mismo año y provincia
-Indicador construido para 2019 y 2020
+###Se calcula como: número de nacimientos de madres de x a x años, prov y año/ población proyectada a mitad de periodo de x a x años , mismo año y provincia
+####base nacidos vivos y base proyecciones poblacionales indec
+####Indicador construido para 2019 y 2020
 
-
+#primero se calcula el número de nacidos vivos pra cada grupo etario de madres
 ```{r nacidos vivos x grupo etario madre, include=FALSE}
 
 base_nacidos_vivos <- read.csv2("MINSAL - Nacidos vivos 2005-2020 jurisdicción residencia de la madre.csv", encoding="latin1", sep = ",")
@@ -220,7 +237,7 @@ base_nacidos_vivos <- read.csv2("MINSAL - Nacidos vivos 2005-2020 jurisdicción 
 #mirar variables
 str(base_nacidos_vivos)
 unique(base_nacidos_vivos$edad_madre_grupo)
-#la base de nacidos vivos agrupa a todas las madres menores de 15 años, no podemos tomar a partir de 10 años ver tema de qué denominador usaríamos)
+#la base de nacidos vivos agrupa a todas las madres menores de 15 años. Consideramos que las menores de 15 años incluye aprox a partir de 10 años (por una cuestión de desarrollo biológico), por lo tanto utilizamos como numerador menores de 15 años junto con el denominador poblacional de 10 a 15 años.
 unique(base_nacidos_vivos$anio)
 
 base_nacidos_vivos_2019 <- base_nacidos_vivos %>%
@@ -333,25 +350,18 @@ nacidosvivos_2020_25a29_suma <-base_nacidos_vivos_2020_25a29 %>%
   dplyr::summarise(casos=sum(nacimientos_cantidad))
 
 ```
-
+#Se calculan las proyecciones poblacionales de madres (considerando sexo=femenino) para cada grupo etario
 ```{r proyecciones poblacionales madres, include=FALSE}
 base_proyecciones <- read.csv2("poblacion indec gamma.csv", encoding="latin1", sep = ",")
 #use doc de proyecciones gamma
+
 str(base_proyecciones)
-
-## no es necesario correrlo, quiero consultar por qué no sale
-#base_proyecciones <- base_proyecciones %>%
-#  mutate(jurisdicion_residencia_nombre = case_when(CodProv = 2 ~ "Ciudad Autónoma de Buenos Aires",
-#                                                  CodProv = 6 ~ "Buenos Aires"))
-
 head(base_proyecciones)
 
 base_proyecciones_fem <- base_proyecciones %>%
   filter(Sexo == "2")
 
 #se puede generar el denominador de menores de 15, pero evaluar cuáles seleccionar
-#base_proyecciones_fem_ok <- base_proyecciones_fem %>%
- # mutate(menores15 = sum(X0, X1.4, X5.9, X10.14))
 
 base_proyecciones_fem_2019 <- base_proyecciones_fem %>%
   filter(Ano == "2019")
@@ -390,7 +400,7 @@ proyecciones_2020_20a24 <- base_proyecciones_fem_2020 %>%
 proyecciones_2020_25a29 <- base_proyecciones_fem_2020 %>%
   select(CodProv, X25.29)
 ```
-
+#Se calculan las tasas dividiendo el número de nacimientos para cada rango etario por las proyecciones poblacionales de ese rango etario, por factor de expansión 10.000
 ```{r fecundidad adolescente, include=FALSE}
 
 ##AÑO 2019
@@ -470,6 +480,7 @@ write_xlsx(bases_tfa_2020_completa,"bases_tfa_2020_completa.xlsx")
 
 ```
 
+#Análisis descriptivo de mortalidad por causas externas indeterminadas
 ```{r descriptivos mortalidad externas indeterminadas, include=FALSE}
 #traigo catalogo cie 10 con listas gbd
 
@@ -480,10 +491,8 @@ str(catalogo_CIE10)
 #catalogo_CIE10 <- catalogo_CIE10 %>%
 #  rename(`Lista GBD  Grupos  (1,2, 3, 4)` = GBD)
 
-cat <- catalogo_CIE10 %>% 
-  select(No, Clave, Nombre,  `Lista GBD  Grupos  (1,2, 3, 4)`)
-
-cat_ext_maldef <- cat %>%
+cat_ext_maldef <- catalogo_CIE10 %>% 
+  select(No, Clave, Nombre,  `Lista GBD  Grupos  (1,2, 3, 4)`) %>% 
   filter (`Lista GBD  Grupos  (1,2, 3, 4)` == 3 | `Lista GBD  Grupos  (1,2, 3, 4)` == 4 )
 
 str(cat_ext_maldef)
@@ -509,18 +518,9 @@ cod_lesiones <- c("113 EVENTOS DE INTENCION NO DETERMINADA", "110 OTROS ACCIDENT
 
 #NO TENEMOS LOS GRUPOS ETARIOS QUE NECESITAMOS EN LA BASE DE MORTALIDAD
 
-lista_cod <- base_mortalidad %>%
-  filter (lista_clasificacion %in% cod_lesiones)
-
-lista_cod2  <- lista_cod %>%
-  select(lista_clasificacion, cie10_casusa_id)
-
-lista_cod3  <- lista_cod2 %>%
-  group_by(lista_clasificacion, cie10_casusa_id) %>%
-  dplyr::summarise(casos=n())
-
-#otra opción para eliminar duplicados de más de una columna
-listas_arg <- lista_cod2 %>% 
+listas_arg <- base_mortalidad %>%
+  filter (lista_clasificacion %in% cod_lesiones) %>% 
+  select(lista_clasificacion, cie10_casusa_id) %>% 
   distinct(lista_clasificacion, cie10_casusa_id)
 
 str(listas_arg)
@@ -529,7 +529,7 @@ unique(listas_arg$cie10_casusa_id)
 juntas <- inner_join(
   cat_ext_maldef,
   listas_arg,
-  by = c("Clave2" = "cie10_casusa_id"),
+  by = c("Clave" = "cie10_casusa_id"),
   copy = FALSE,
   suffix = c(".x", ".y"),
   keep = FALSE
@@ -551,7 +551,7 @@ base_VP_2019$codmuer2 <- str_sub(base_VP_2019$codmuer, 1, 3)
 mortalidad_2019 <-  inner_join(
   base_VP_2019,
   juntas,
-  by = c("codmuer2" = "Clave2"),
+  by = c("codmuer2" = "Clave"),
   copy = FALSE,
   suffix = c(".x", ".y"),
   keep = FALSE
@@ -570,6 +570,7 @@ plot_2019 <- ggplot(prueba, aes(grupedad, porc, colour = lista_clasificacion)) +
   coord_flip()
 
 ```
+#Hacemos un descriptivo de causas externas de mortalidad en niños y adolescentes
 
 ```{r descriptivo mortalidad en nya}
 #filtro para grupo 10-29
@@ -583,6 +584,7 @@ mort_nya <- mortalidad_2019 %>%
   filter(grupedad %in% nya & sexo %in% sex) %>% 
   group_by(grupedad, sexo, lista_clasificacion)%>%
   dplyr::summarise(total = n()) %>% 
+  ungroup() %>% 
   group_by(grupedad) %>% 
   mutate( porc = total/sum(total))
 
@@ -629,8 +631,10 @@ graf_animado <- animate(graf_animado, renderer = magick_renderer())
 
 ```
 
+#Mortalidad por agresiones en adolescentes
+###Se calcula como número de muertes por agresiones entre 10 y 29 años. / población proyectada a mitad de periodo de 10 a 29 años , mismo año y provincia (evaluar dividir 10-19 y 20-29)
+###Indicador para año 2019
 ```{r indicadores mortalidad nya}
-#Número de muertes por x causa entre x y x años. / población proyec.. (evaluar dividir 10-19 y 20-29)
 
 #recorte de proyecciones por edad y sexo
 
