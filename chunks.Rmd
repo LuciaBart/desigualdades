@@ -1065,7 +1065,7 @@ ind_mortalidad_agresiones <- left_join(mort_nya_agresiones, total_nya,
 
 ```
 
-```{r mortalidad diabetes tipo 2 - descriptivo, echo=TRUE}
+```{r mortalidad ADULTOS Y ADULTOS MAYORES preparación bases, echo=TRUE}
 #primero armamos catalogo cie 10 con listas GBD y listas argentina 
 
 #traigo catalogo cie 10 con listas gbd
@@ -1127,11 +1127,12 @@ base_mortalidad_VP$codmuer[str_sub(base_mortalidad_VP$codmuer, -1, -1) == "X"] <
 base_VP_2019 <- base_mortalidad_VP %>%
   dplyr::filter (ano == "2019")
 
+base_VP_2019$codmuer2 <- str_sub(base_VP_2019$codmuer, 1, 3)
 
 mortalidad_2019 <-  left_join(
   base_VP_2019,
   juntas_completa,
-  by = c("codmuer" = "Clave"),
+  by = c("codmuer2" = "Clave2"),
   copy = FALSE,
   suffix = c(".x", ".y"),
   keep = FALSE
@@ -1140,34 +1141,68 @@ mortalidad_2019 <-  left_join(
 str(mortalidad_2019)
 table(mortalidad_2019$lista_clasificacion)
 
+#quedaron códigos con 3 dígitos, porque en la base del minsal están así entonces vienen así de la lista de argentina
+#pero.. si no usamos las listas, uso directo la base vp, sin las listas y puedo usar los códigos de 4 dígitos
+#las bases de mortalidad de 2019 son: base_VP_2019 y mortalidad_2019
+#armo sobre la de mortalidad con 4 dígitos los grupos de edad:
 
-base_mortalidad <- read.csv2("MINSAL-defunciones-2005-2020.csv", encoding="latin1", sep = ",")
-str(base_mortalidad)
-unique(base_mortalidad$lista_clasificacion)
+unique(base_VP_2019$grupedad)
+base_VP_2019_adultos <- base_VP_2019 %>% 
+  filter(grupedad == "16.45 a 49" | grupedad == "18.55 a 59"  | grupedad == "15.40 a 44" | grupedad == "14.35 a 39" |grupedad == "17.50 a 54" | grupedad == "13.30 a 34")
 
-#cod diabetes tipo 2: 053, pero no diferencia tipo 1 o 2
+base_VP_2019_adultos_mayores <- base_VP_2019 %>% 
+    filter(grupedad == "22.75 a 79" | grupedad == "24.85 y más"  | grupedad == "20.65 a 69" | grupedad == "21.70 a 74" |grupedad == "23.80 a 84" | grupedad == "19.60 a 64")
 
-base_diabetes_2019 <- base_mortalidad %>%
-  filter (lista_clasificacion == "053 DIABETES MELLITUS" & anio == "2019")
+base_VP_2019_adultos_mayores1 <- base_VP_2019 %>% 
+    filter(grupedad == "22.75 a 79" | grupedad == "20.65 a 69" | grupedad == "21.70 a 74" | grupedad == "19.60 a 64")
 
-unique(base_mortalidad$grupo_edad)
-base_diabetes_2019_adultos <- base_diabetes_2019 %>%
-  filter (grupo_edad   == "10.75 y más" | grupo_edad == "09.65 a 74" | grupo_edad == "07.45 a 54" | grupo_edad == "06.35 a 44" | grupo_edad == "08.55 a 64" | grupo_edad == "05.25 a 34")
-
-unique(base_diabetes_2019$cie10_casusa_id)
-
-#hay E10 E11 E12 E13 E14
-
-des_diabetes_2019 <- base_diabetes_2019_adultos %>%
-  group_by(jurisdicion_residencia_nombre, cie10_casusa_id, grupo_edad, sexo_id) %>%
-  dplyr::summarise(casos=sum(cantidad))
-
-des_diabetes_2019_bis <- base_diabetes_2019_adultos %>%
-  group_by(cie10_casusa_id, grupo_edad, sexo_id) %>%
-  dplyr::summarise(casos=sum(cantidad))
+base_VP_2019_adultos_mayores2 <- base_VP_2019 %>% 
+    filter(grupedad == "24.85 y más"  | grupedad == "23.80 a 84")
 
 
-plot  <- des_diabetes_2019_bis %>%
+#bases poblacionales para cada grupo 2019
+base_pop <- read.csv2("poblacion indec gamma.csv", encoding="latin1", sep = ",")
+
+base_pop_2019 <- base_pop %>% 
+  filter(Ano == "2019")
+
+pop_adultos_2019 <- base_pop_2019 %>%
+  select(CodProv, Sexo, X30.34, X35.39, X40.44, X45.49, X50.54, X55.59) %>% 
+  mutate(totalsex = rowSums(across(c(X30.34, X35.39, X40.44, X45.49, X50.54, X55.59)))) %>% 
+  pivot_wider(names_from = Sexo, values_from = c(X30.34, X35.39, X40.44, X45.49, X50.54, X55.59, totalsex)) %>% 
+  mutate(total = rowSums(across(c(totalsex_1, totalsex_2))))
+
+pop_adultos_mayores_2019 <- base_pop_2019 %>%
+  select(CodProv, Sexo, X60.64, X65.69, X70.74, X75.79, X80.84, X85.89, X90.94, X95.) %>% 
+  mutate(totalsex = rowSums(across(c(X60.64, X65.69, X70.74, X75.79, X80.84, X85.89, X90.94, X95.)))) %>% 
+  pivot_wider(names_from = Sexo, values_from = c(X60.64, X65.69, X70.74, X75.79, X80.84, X85.89, X90.94, X95., totalsex)) %>% 
+  mutate(total = rowSums(across(c(totalsex_1, totalsex_2))))
+
+pop_adultos_mayores_1_2019 <- base_pop_2019 %>%
+  select(CodProv, Sexo, X60.64, X65.69, X70.74, X75.79) %>% 
+  mutate(totalsex = rowSums(across(c(X60.64, X65.69, X70.74, X75.79)))) %>% 
+  pivot_wider(names_from = Sexo, values_from = c(X60.64, X65.69, X70.74, X75.79, totalsex)) %>% 
+  mutate(total = rowSums(across(c(totalsex_1, totalsex_2))))
+
+pop_adultos_mayores_2_2019 <- base_pop_2019 %>%
+  select(CodProv, Sexo, X80.84, X85.89, X90.94, X95.) %>% 
+  mutate(totalsex = rowSums(across(c(X80.84, X85.89, X90.94, X95.)))) %>% 
+  pivot_wider(names_from = Sexo, values_from = c(X80.84, X85.89, X90.94, X95., totalsex)) %>% 
+  mutate(total = rowSums(across(c(totalsex_1, totalsex_2))))
+
+
+
+```
+
+```{r diabetes }
+
+#cod diabetes: E10X E11X E12X E13X E14X E232 N083 N251 (G590 G632 H280 H360 M142 son condiciones asociadas) 
+
+base_diabetes_2019_adultos <- base_VP_2019_adultos %>%
+  filter (codmuer == "E10X" | codmuer == "E11X" | codmuer == "E12X" | codmuer == "E13X" | codmuer == "E14X" | codmuer == "E232" | codmuer == "N083" | codmuer == "N251" | codmuer == "G590" | codmuer == "G632" | codmuer == "H280" | codmuer == "H360" | codmuer == "M142" ) 
+
+#vendría el plot que no tiene sentido porque no hay registros
+#plot  <- des_diabetes_2019_bis %>%
   ggplot(aes(x = cie10_casusa_id,
              y = casos,
              color = sexo_id)) +
@@ -1175,7 +1210,56 @@ plot  <- des_diabetes_2019_bis %>%
 
 #  facet_grid(jurisdicion_residencia_nombre ~ .)
 
-                                                                                   
+```
+
+```{r enf sistema circulatorio}
+#selecciono los códigos que corresponden a enfermedades del sistema circulatorio (las que comienzan con I en el código)
+base_VP_2019_adultos$codmuer3 <- str_sub(base_VP_2019_adultos$codmuer, 1, 1)
+
+base_enfcircu_2019_adultos <- base_VP_2019_adultos %>%  
+  filter (codmuer3 == "I")
+
+# códigos de causa poco útiles: I45 I450 I451 I452 I453 I454 I455 I456 I458 I459 I46 I460 I461 I469
+
+prueba <- base_enfcircu_2019_adultos %>% 
+  group_by(ano, juri, grupedad) %>% 
+  summarise(n()) %>% 
+  pivot_wider(names_from = grupedad, values_from = "n()") %>% 
+  mutate(total = rowSums(across(c("13.30 a 34", "14.35 a 39", "15.40 a 44", "16.45 a 49", "17.50 a 54", "18.55 a 59"))))
+  
+prueba2 <- left_join (prueba,
+  pop_adultos_2019,
+  by = c("juri" = "CodProv"),
+  copy = FALSE,
+  suffix = c(".x", ".y"),
+  keep = FALSE
+)
+
+ind_enfcircu <- prueba2 %>% 
+  mutate(indicador = (total.x/total.y))
+
+
+```
+
+```{r cáncer cérvix}
+
+
+
+```
+
+```{r def nutricionales}
+
+```
+
+```{r enf crónicas respi inferiores}
+```
+
+```{r caídas}
+
+```
+
+```{r coberturas SRP1}
+
 ```
 
 ```{r ajuste de tasas}
