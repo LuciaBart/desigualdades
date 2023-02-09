@@ -25,6 +25,12 @@ Para calcular los indicadores, en primer lugar instalamos los paquetes y activam
 #install.packages("writexl")
 #install.packages("ggplot2")
 #install.packages("rlang")
+install.packages("knitr")
+install.packages("DT")
+install.packages("ggpubr")
+install.packages("gt")
+install.packages("gtExtras")
+install.packages("svglite")
 
 #activar librerías
 library(tidyverse)
@@ -1058,6 +1064,80 @@ ind_mortalidad_agresiones <- left_join(mort_nya_agresiones, total_nya,
 ```
 
 ```{r mortalidad diabetes tipo 2 - descriptivo, echo=TRUE}
+#primero armamos catalogo cie 10 con listas GBD y listas argentina 
+
+#traigo catalogo cie 10 con listas gbd
+
+catalogo_CIE10 <- read_excel("Catalogo_CIE_completo.xls",
+                       sheet = "CatalogoVolumen1", range ="A5:Y14423" )
+str(catalogo_CIE10)
+
+#catalogo_CIE10 <- catalogo_CIE10 %>%
+#  rename(`Lista GBD  Grupos  (1,2, 3, 4)` = GBD)
+
+cat_gbd <- catalogo_CIE10 %>% 
+  select(No, Clave, Nombre,  `Lista GBD  Grupos  (1,2, 3, 4)`)
+  
+str(cat_gbd)
+
+#borrar el último número de Clave y traer por derecha a cod3
+
+class(cat_gbd$Clave)
+
+cat_gbd$Clave2 <- str_sub(cat_gbd$Clave, 1, 3)
+
+#traigo base msal con lista msal
+
+base_mortalidad <- read.csv2("MINSAL-defunciones-2005-2020.csv", encoding="latin1", sep = ",")
+
+#mirar variables
+str(base_mortalidad)
+
+listas_arg_completa <- base_mortalidad %>%
+  select(lista_clasificacion, cie10_casusa_id) %>% 
+  distinct(lista_clasificacion, cie10_casusa_id)
+
+str(listas_arg)
+unique(listas_arg$cie10_casusa_id)
+
+
+juntas_completa <- inner_join(
+  cat_gbd,
+  listas_arg_completa,
+  by = c("Clave" = "cie10_casusa_id"),
+  copy = FALSE,
+  suffix = c(".x", ".y"),
+  keep = FALSE
+)
+
+####BASE VP
+base_mortalidad_VP <- read.csv2("def2019VP.csv", encoding="UTF-8", sep = ",")
+str(base_mortalidad_VP)
+unique(base_mortalidad_VP$codmuer)
+unique(base_mortalidad_VP$grupedad)
+
+#reemplazamos X del final por espacio en códigos de 4 dígitos
+base_mortalidad_VP$codmuer[str_sub(base_mortalidad_VP$codmuer, -1, -1) == "X"] <-
+  gsub("X", "", base_mortalidad_VP$codmuer[str_sub(base_mortalidad_VP$codmuer, -1, -1) == "X"])
+
+###año 2019
+
+base_VP_2019 <- base_mortalidad_VP %>%
+  dplyr::filter (ano == "2019")
+
+
+mortalidad_2019 <-  left_join(
+  base_VP_2019,
+  juntas_completa,
+  by = c("codmuer" = "Clave"),
+  copy = FALSE,
+  suffix = c(".x", ".y"),
+  keep = FALSE
+)
+
+str(mortalidad_2019)
+table(mortalidad_2019$lista_clasificacion)
+
 
 base_mortalidad <- read.csv2("MINSAL-defunciones-2005-2020.csv", encoding="latin1", sep = ",")
 str(base_mortalidad)
