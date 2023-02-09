@@ -55,7 +55,7 @@ library(svglite)
 
 ### Comenzamos por calcular las muertes maternas
 
-```{r muertes maternas, echo=TRUE}
+```{r muertes maternas, echo=TRUE, message=FALSE, warning=FALSE}
 #muertes maternas por provincia
 #traer base mortalidad
 base_mortalidad <- read.csv2("MINSAL-defunciones-2005-2020.csv", encoding="latin1", sep = ",")
@@ -1054,6 +1054,8 @@ ind_mortalidad_agresiones <- left_join(mort_nya_agresiones, total_nya,
 ##aca armar tablas con datatable con los dos indicadores en una misma tabla
 
 
+
+
 ###revise hasta aca (velen)
 
 #write_xlsx(ind_mortalidad_suicidios,"ind_mortalidad_suicidios.xlsx")
@@ -1174,5 +1176,153 @@ plot  <- des_diabetes_2019_bis %>%
 #  facet_grid(jurisdicion_residencia_nombre ~ .)
 
                                                                                    
+```
+
+```{r ajuste de tasas}
+
+
+####tabla de ejemplo
+
+tabla2_grupo_edad<- pais_dos %>% 
+  group_by(juri_c,juri,ano,grupo_edad, niveles) %>% 
+  summarise(n = n()) %>% filter(niveles=="1. Muy alto"|niveles=="2. Alto") %>% 
+  spread(niveles,n) %>% mutate(poco_utiles=`1. Muy alto`+`2. Alto`) %>% 
+  dplyr::select(-`1. Muy alto`,-`2. Alto`)  
+
+tabla2_grupo_edad_t<- pais_dos %>% 
+  group_by(ano,grupo_edad, niveles) %>% 
+  summarise(n = n()) %>% filter(niveles=="1. Muy alto"|niveles=="2. Alto") %>% 
+  spread(niveles,n) %>% mutate(poco_utiles=`1. Muy alto`+`2. Alto`) %>% 
+  dplyr::select(-`1. Muy alto`,-`2. Alto`) 
+
+tabla2_grupo_edad_t$juri_c <- "tot"
+tabla2_grupo_edad_t$juri <- 0
+tabla2_grupo_edad_t <- tabla2_grupo_edad_t[,c(4,5,1,2,3)]
+
+tabla2_grupo_edad <- rbind(tabla2_grupo_edad,tabla2_grupo_edad_t)# esto dejo como ejemplo ya que ahi se agrego un total por provincia. 
+
+##poblaciones
+
+poblaciones <- read.csv("poblacion. 1997-2019.csv", sep=";")# este archivo lo deje en la carpeta
+names(poblaciones)
+poblaciones <- poblaciones%>% filter(sexo==0) %>% 
+  dplyr::select(-trienio,-sexo) 
+
+
+##union poblaciones
+
+levels(as.factor(poblaciones$gr_edad))
+levels(as.factor(tabla2_grupo_edad$grupo_edad))## con esta parte chequear que los nombres de los grupos de edad de tu base que esten escritos igual. si no cambiarlos abajo en la funcion "recode-FACTOR"
+poblaciones$gr_edad <- as.factor(poblaciones$gr_edad)
+poblaciones$gr_edad <- recode_factor(poblaciones$gr_edad, 
+                                             POB0004="0 a 4 años",
+                                             POB0509= "05 a 9 años",
+                                             POB1014="10 a 14 años",
+                                             POB1519="15 a 19 años",
+                                             POB2024="20 a 24 años",
+                                             POB2529="25 a 29 años",
+                                             
+                                             POB3034="30 a 34 años",
+                                             POB3539="35 a 39 años",
+                                             POB4044="40 a 44 años",
+                                             POB4549="45 a 49 años",
+                                             POB5054="50 a 54 años",
+                                             POB5559="55 a 59 años",
+                                             POB6064="60 a 64 años",
+                                             POB6569="65 a 69 años",
+                                             POB7074="70 a 74 años",
+                                             POB7579="75 a 79 años",
+                                             POB80MAS= "80 años y más",
+                                             POBTOT="POBTOT"
+                                             )
+
+
+
+tasas <- left_join(tabla2_grupo_edad, poblaciones, by=c("grupo_edad"="gr_edad",# MACHEO POR GR. EDAD, PROV Y AÑO PARA AGREGAR POBLACIONES (OMITIR SI YA ESTAN EN LA BASE)
+                                                        "juri"="provincia", 
+                                                        "ano"="FECDEF_ano") )
+levels(tasas$grupo_edad)
+
+###pob estandar
+
+pob.estandar <- read.csv("pob.estandar.csv",sep=";", encoding = "UTF-8")# ESTA POBLACION ESTANDAR ESTA POR EDAD Y NO POR SEXO, PORLO TANTO EL AJUSTE SE PUEDE HACER SOLO POR EDAD (NO POR SEXO). pARA AJUSTAR POR LAS DOS VARIABLES A LA VEZ NECESITAMOS LA POB ESTANDAR POR SEXO QUE EN ESTE MOMENTO NO LA TENGO.
+
+names(pob.estandar)[1] <- "grupo_edad"
+
+tasa_ajuste <- left_join(tasas,pob.estandar,by="grupo_edad")# ACA LE TRAIGO POR DERECHA LA POBLACION ESTANDAR, Y HAGO LA UNION SOLO POR GRUPO DE EDAD
+
+##reemplazo los na por 0 en la variable de n # ESTO SE PUEDE EVITAR LO DEJO POR LAS DUDAS
+tasa_ajuste$poco_utiles[is.na(tasa_ajuste$poco_utiles)] = 0
+
+
+##na en edad
+na_edad <- tasa_ajuste[is.na(tasa_ajuste$grupo_edad),c(1,2,3,5)]
+na_edad
+#quito las filas donde edad es na
+tasa_ajuste <- tasa_ajuste %>% filter(!is.na(grupo_edad))# ESTAS LINEAS REVISAN QUE NO HAYA NA EN NINGUNA CELDA PORQUE SINO LA FUNCION DE AJUSTE ME VA A DAR ERROR
+
+##AHORA SI CON TODO LISTO PUEDO AJUSTAR
+####creo funcion para ajustar tasas todas a la vez
+
+# convert df to data.table, ES UN FORMATO DE TABLA DIFERENTE QUE SE PIDE PARA ESTA FUNCION
+setDT(tasa_ajuste)
+# define subgroups
+names(tasa_ajuste)
+group_by<-c( 'juri_c', "juri","ano")# defino los agrupamientos, 
+
+
+
+#ajuste
+library(epitools)# la funcion que utilizamos de este paquete es ageadjust.direct. es el ajuste comun, como el que te explique. Luego hay un ajuste indirecto, que no se usa tanto, solo en ocaciones donde los n son muy chicos o cuando no se tiene el dato de muertes por grupo de edad, se ve en estudios de salud laboral por los n bajos. Con el metodo indirecto se obtiene la RME (razon de mort estandarizada) y se interpreta un poco difente a la tasa ajustada por metodo directo. Cuando ponene tasas ajustadas en gral es q se uso el met directo. Sino poner RME directamente. (aca explicacion de metodo indirecto https://www3.paho.org/Spanish/SHA/be_v23n3-estandariz.htm y aca la justificacion de cuando conviene usas cada metodo https://www.argentina.gob.ar/sites/default/files/lineamientos_esp-web.pdf).
+
+# ageadjust.direct by subgroups. The trick is to include as.lst()
+ajuste <- tasa_ajuste[, as.list(epitools::ageadjust.direct(count = poco_utiles,# aca n de muertes
+                                                           pop = pob,# aca la pob
+                                                           rate = poco_utiles/pob,# aca la tasa o directamente la div
+                                                           stdpop = pob.estandar)), by=group_by]# aca la pob estandar
+
+# aca aplico factor de expansion a cada tasa, la funcion te devuelve la cruda y la ajustada y el IC para la ajustada
+ajuste$crude.rate <- ajuste$crude.rate*100000
+ajuste$adj.rate <- ajuste$adj.rate*100000
+ajuste$lci <- ajuste$lci *100000
+ajuste$uci <- ajuste$uci *100000
+
+# aca armos bases diferentes una por año
+ajuste_2018 <- ajuste %>% filter(ano==2018)
+ajuste_2019 <- ajuste %>% filter(ano==2019)
+
+
+###graficos años ( los deje por las dudas)
+ajuste$ano <- as.factor(ajuste$ano)
+ajuste$color <-rep("grey",50)
+
+ajuste$color[ajuste$juri==0] <- "red"
+chart <- ggcharts::bar_chart(
+  ajuste,
+  juri_c,
+  adj.rate,
+  fill = color,
+  facet = ano
+)
+chart+
+  labs(y = "Tasa ajustada de mortalidad por causas poco utiles (nivel 1 y 2)", x = NULL, fill = NULL) +
+  theme_bw() +
+  theme(
+    strip.background  = element_blank(),
+    panel.grid.major = element_line(colour = "grey80"),
+    panel.border = element_blank(),
+    axis.ticks = element_line(size = 0),
+    panel.grid.minor.y = element_blank(),
+    panel.grid.major.y = element_blank(),
+    legend.position = "none"
+  ) 
+
+
+ajuste_g <- ggplot(ajuste, aes(x=juri_c, y=adj.rate))+
+  geom_bar(stat ="identity")+
+  coord_flip()+
+  facet_wrap(vars(as.factor(ano)))
+ajuste_g
+
 ```
 
