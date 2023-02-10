@@ -1328,7 +1328,7 @@ ind_enfcircu <- prueba2 %>%
 ```
 
 ```{r ajuste de tasas enf circ}
-#ajuste de ind_enfcircu
+#ajuste de ind_enfcircu 
 
 ####tabla de ejemplo
 ##poblaciones
