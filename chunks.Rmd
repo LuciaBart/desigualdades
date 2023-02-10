@@ -1196,17 +1196,30 @@ pop_adultos_mayores_2_2019 <- base_pop_2019 %>%
 
 ```{r diabetes }
 
-#cod diabetes: E10X E11X E12X E13X E14X E232 N083 N251 (G590 G632 H280 H360 M142 son condiciones asociadas) 
+#cod diabetes: E10X E11X E12X E13X E14X E232 N083 N251
+#"E100","E101"
+#E102
+#E103
+#E104
+#E105
+#E106
+#E107
+#E108
+#E109
+#(G590 G632 H280 H360 M142 son condiciones asociadas) 
 
 base_diabetes_2019_adultos <- base_VP_2019_adultos %>%
-  filter (codmuer == "E10X" | codmuer == "E11X" | codmuer == "E12X" | codmuer == "E13X" | codmuer == "E14X" | codmuer == "E232" | codmuer == "N083" | codmuer == "N251" | codmuer == "G590" | codmuer == "G632" | codmuer == "H280" | codmuer == "H360" | codmuer == "M142" ) 
+  filter (codmuer2 == "E10"|codmuer == "E10X" | codmuer == "E11X" | codmuer2 == "E11" | codmuer == "E12X" |codmuer2 == "E12" | 
+            codmuer2 == "E13" | codmuer == "E13X" | codmuer == "E14X" |codmuer2 == "E14" | codmuer == "E232" | codmuer == "N083" | codmuer == "N251" | codmuer == "G590" | codmuer == "G632" | codmuer == "H280" | codmuer == "H360" | codmuer == "M142" ) 
+
+#E109
 
 #vendría el plot que no tiene sentido porque no hay registros
 #plot  <- des_diabetes_2019_bis %>%
-  ggplot(aes(x = cie10_casusa_id,
-             y = casos,
-             color = sexo_id)) +
-  geom_boxplot()
+  #ggplot(aes(x = cie10_casusa_id,
+   #          y = casos,
+    #         color = sexo_id)) +
+ # geom_boxplot()
 
 #  facet_grid(jurisdicion_residencia_nombre ~ .)
 
@@ -1222,23 +1235,75 @@ base_enfcircu_2019_adultos <- base_VP_2019_adultos %>%
 # códigos de causa poco útiles: I45 I450 I451 I452 I453 I454 I455 I456 I458 I459 I46 I460 I461 I469
 
 prueba <- base_enfcircu_2019_adultos %>% 
-  group_by(ano, juri, grupedad) %>% 
-  summarise(n()) %>% 
-  pivot_wider(names_from = grupedad, values_from = "n()") %>% 
-  mutate(total = rowSums(across(c("13.30 a 34", "14.35 a 39", "15.40 a 44", "16.45 a 49", "17.50 a 54", "18.55 a 59"))))
+  group_by(ano, juri, grupedad,sexo) %>%#aca agregue sexo 
+  summarise(n=n()) %>% 
+  pivot_wider(names_from = grupedad, values_from = n) %>% 
+  mutate(total = rowSums(across(c("13.30 a 34", "14.35 a 39", "15.40 a 44", "16.45 a 49", "17.50 a 54", "18.55 a 59")),na.rm =T))
   
-prueba2 <- left_join (prueba,
-  pop_adultos_2019,
-  by = c("juri" = "CodProv"),
+
+colnames(prueba) <- c("ano",
+                      "juri"  ,
+                      "sexo",
+                      "30 a 34 años",
+                      "35 a 39 años",
+                      "40 a 44 años",
+                      "45 a 49 años",
+                      "50 a 54 años" ,
+                      "55 a 59 años",
+                      "tot_30_59" )
+
+ind_enfcircu_v <- prueba %>% 
+                  gather( key = grupo_edad,
+                          value= n,
+                          4:10) 
+  
+##transformo la tabla de pob "pop_adultos_2019" para unir con ind_enfciru
+
+
+pop_adultos_2019_ajust <- pop_adultos_2019 %>% 
+                  gather( key = grupo_edad,
+                          value= pop,
+                          2:16) %>% 
+                  mutate(sexo=case_when(
+                    grepl("*1$",grupo_edad)~ "1",
+                    grepl("*2$",grupo_edad)~ "2",
+                    
+                   grupo_edad== "total"  ~ "ambos"
+                  )) %>% 
+                    mutate(grupo_edad=fct_recode(grupo_edad,"30 a 34 años"="X30.34_1" ,
+                    "30 a 34 años"= "X30.34_2" ,
+                     "35 a 39 años"="X35.39_1",
+                      "35 a 39 años"="X35.39_2",
+                      "40 a 44 años"= "X40.44_1",
+                      "40 a 44 años"= "X40.44_2",
+                     "45 a 49 años"="X45.49_1" ,
+                     "45 a 49 años"="X45.49_2" ,
+                    "50 a 54 años"= "X50.54_1" ,
+                      "50 a 54 años"="X50.54_2" ,
+                      "55 a 59 años"="X55.59_1",
+                      "55 a 59 años"="X55.59_2",
+                      "tot_30_59"="total"  ))
+
+#uno muertes con poblacion
+str(ind_enfcircu_v)
+str( pop_adultos_2019_ajust)
+ind_enfcircu_v$sexo <- as.character(ind_enfcircu_v$sexo)
+prueba2 <- left_join (ind_enfcircu_v,
+  pop_adultos_2019_ajust,
+  by = c("juri" = "CodProv", "grupo_edad","sexo"),
   copy = FALSE,
   suffix = c(".x", ".y"),
   keep = FALSE
 )
 
 ind_enfcircu <- prueba2 %>% 
-  mutate(indicador = (total.x/total.y))
+  mutate(indicador = round((n/pop*10000),2))
 
 
+                  
+  
+  
+  
 ```
 
 ```{r cáncer cérvix}
@@ -1262,41 +1327,21 @@ ind_enfcircu <- prueba2 %>%
 
 ```
 
-```{r ajuste de tasas}
-
+```{r ajuste de tasas enf circ}
+#ajuste de ind_enfcircu
 
 ####tabla de ejemplo
-
-tabla2_grupo_edad<- pais_dos %>% 
-  group_by(juri_c,juri,ano,grupo_edad, niveles) %>% 
-  summarise(n = n()) %>% filter(niveles=="1. Muy alto"|niveles=="2. Alto") %>% 
-  spread(niveles,n) %>% mutate(poco_utiles=`1. Muy alto`+`2. Alto`) %>% 
-  dplyr::select(-`1. Muy alto`,-`2. Alto`)  
-
-tabla2_grupo_edad_t<- pais_dos %>% 
-  group_by(ano,grupo_edad, niveles) %>% 
-  summarise(n = n()) %>% filter(niveles=="1. Muy alto"|niveles=="2. Alto") %>% 
-  spread(niveles,n) %>% mutate(poco_utiles=`1. Muy alto`+`2. Alto`) %>% 
-  dplyr::select(-`1. Muy alto`,-`2. Alto`) 
-
-tabla2_grupo_edad_t$juri_c <- "tot"
-tabla2_grupo_edad_t$juri <- 0
-tabla2_grupo_edad_t <- tabla2_grupo_edad_t[,c(4,5,1,2,3)]
-
-tabla2_grupo_edad <- rbind(tabla2_grupo_edad,tabla2_grupo_edad_t)# esto dejo como ejemplo ya que ahi se agrego un total por provincia. 
-
 ##poblaciones
 
 poblaciones <- read.csv("poblacion. 1997-2019.csv", sep=";")# este archivo lo deje en la carpeta
 names(poblaciones)
-poblaciones <- poblaciones%>% filter(sexo==0) %>% 
-  dplyr::select(-trienio,-sexo) 
+poblaciones <- poblaciones%>% 
+  dplyr::select(-trienio) 
 
 
 ##union poblaciones
 
-levels(as.factor(poblaciones$gr_edad))
-levels(as.factor(tabla2_grupo_edad$grupo_edad))## con esta parte chequear que los nombres de los grupos de edad de tu base que esten escritos igual. si no cambiarlos abajo en la funcion "recode-FACTOR"
+levels(as.factor(poblaciones$gr_edad))## con esta parte chequear que los nombres de los grupos de edad de tu base que esten escritos igual. si no cambiarlos abajo en la funcion "recode-FACTOR"
 poblaciones$gr_edad <- as.factor(poblaciones$gr_edad)
 poblaciones$gr_edad <- recode_factor(poblaciones$gr_edad, 
                                              POB0004="0 a 4 años",
@@ -1321,92 +1366,57 @@ poblaciones$gr_edad <- recode_factor(poblaciones$gr_edad,
                                              )
 
 
-
-tasas <- left_join(tabla2_grupo_edad, poblaciones, by=c("grupo_edad"="gr_edad",# MACHEO POR GR. EDAD, PROV Y AÑO PARA AGREGAR POBLACIONES (OMITIR SI YA ESTAN EN LA BASE)
-                                                        "juri"="provincia", 
+poblaciones$sexo <- as.character(poblaciones$sexo)
+tasas <- left_join(ind_enfcircu, poblaciones, by=c("grupo_edad"="gr_edad",# MACHEO POR GR. EDAD, PROV Y AÑO PARA AGREGAR POBLACIONES (OMITIR SI YA ESTAN EN LA BASE)
+                                                        "juri"="provincia",
+                                                        "sexo",
                                                         "ano"="FECDEF_ano") )
-levels(tasas$grupo_edad)
 
+ind_enfcircu <- ind_enfcircu %>% filter(sexo!="9")
 ###pob estandar
 
 pob.estandar <- read.csv("pob.estandar.csv",sep=";", encoding = "UTF-8")# ESTA POBLACION ESTANDAR ESTA POR EDAD Y NO POR SEXO, PORLO TANTO EL AJUSTE SE PUEDE HACER SOLO POR EDAD (NO POR SEXO). pARA AJUSTAR POR LAS DOS VARIABLES A LA VEZ NECESITAMOS LA POB ESTANDAR POR SEXO QUE EN ESTE MOMENTO NO LA TENGO.
+pob.estandar$sexo <- as.character(pob.estandar$sexo)
+pob.estandar <- pob.estandar[,1:3]
 
-names(pob.estandar)[1] <- "grupo_edad"
-
-tasa_ajuste <- left_join(tasas,pob.estandar,by="grupo_edad")# ACA LE TRAIGO POR DERECHA LA POBLACION ESTANDAR, Y HAGO LA UNION SOLO POR GRUPO DE EDAD
+tasa_ajuste <- left_join(ind_enfcircu,pob.estandar,by=c("sexo","grupo_edad"))# ACA LE TRAIGO POR DERECHA LA POBLACION ESTANDAR, Y HAGO LA UNION SOLO POR GRUPO DE EDAD
 
 ##reemplazo los na por 0 en la variable de n # ESTO SE PUEDE EVITAR LO DEJO POR LAS DUDAS
-tasa_ajuste$poco_utiles[is.na(tasa_ajuste$poco_utiles)] = 0
+tasa_ajuste$n[is.na(tasa_ajuste$n)] = 0
 
 
 ##na en edad
 na_edad <- tasa_ajuste[is.na(tasa_ajuste$grupo_edad),c(1,2,3,5)]
 na_edad
 #quito las filas donde edad es na
-tasa_ajuste <- tasa_ajuste %>% filter(!is.na(grupo_edad))# ESTAS LINEAS REVISAN QUE NO HAYA NA EN NINGUNA CELDA PORQUE SINO LA FUNCION DE AJUSTE ME VA A DAR ERROR
+tasa_ajuste <- tasa_ajuste %>% filter(!is.na(grupo_edad),!is.na(pop))# ESTAS LINEAS REVISAN QUE NO HAYA NA EN NINGUNA CELDA PORQUE SINO LA FUNCION DE AJUSTE ME VA A DAR ERROR
 
-##AHORA SI CON TODO LISTO PUEDO AJUSTAR
 ####creo funcion para ajustar tasas todas a la vez
 
 # convert df to data.table, ES UN FORMATO DE TABLA DIFERENTE QUE SE PIDE PARA ESTA FUNCION
+library(data.table)
 setDT(tasa_ajuste)
 # define subgroups
 names(tasa_ajuste)
-group_by<-c( 'juri_c', "juri","ano")# defino los agrupamientos, 
-
-
+group_by<-c( "juri")# defino los agrupamientos, si tengo mas de un año puedo agregar la variable año aca.
 
 #ajuste
 library(epitools)# la funcion que utilizamos de este paquete es ageadjust.direct. es el ajuste comun, como el que te explique. Luego hay un ajuste indirecto, que no se usa tanto, solo en ocaciones donde los n son muy chicos o cuando no se tiene el dato de muertes por grupo de edad, se ve en estudios de salud laboral por los n bajos. Con el metodo indirecto se obtiene la RME (razon de mort estandarizada) y se interpreta un poco difente a la tasa ajustada por metodo directo. Cuando ponene tasas ajustadas en gral es q se uso el met directo. Sino poner RME directamente. (aca explicacion de metodo indirecto https://www3.paho.org/Spanish/SHA/be_v23n3-estandariz.htm y aca la justificacion de cuando conviene usas cada metodo https://www.argentina.gob.ar/sites/default/files/lineamientos_esp-web.pdf).
 
 # ageadjust.direct by subgroups. The trick is to include as.lst()
-ajuste <- tasa_ajuste[, as.list(epitools::ageadjust.direct(count = poco_utiles,# aca n de muertes
-                                                           pop = pob,# aca la pob
-                                                           rate = poco_utiles/pob,# aca la tasa o directamente la div
-                                                           stdpop = pob.estandar)), by=group_by]# aca la pob estandar
+ajuste <- tasa_ajuste[, as.list(epitools::ageadjust.direct(count = n,# aca n de muertes
+                                                           pop = pop,# aca la pob
+                                                           rate = n/pop,# aca la tasa o directamente la div
+                                                           stdpop = pob.estandar)),
+                      by=group_by]# aca la pob estandar
 
 # aca aplico factor de expansion a cada tasa, la funcion te devuelve la cruda y la ajustada y el IC para la ajustada
 ajuste$crude.rate <- ajuste$crude.rate*100000
 ajuste$adj.rate <- ajuste$adj.rate*100000
 ajuste$lci <- ajuste$lci *100000
 ajuste$uci <- ajuste$uci *100000
-
-# aca armos bases diferentes una por año
-ajuste_2018 <- ajuste %>% filter(ano==2018)
-ajuste_2019 <- ajuste %>% filter(ano==2019)
-
-
-###graficos años ( los deje por las dudas)
-ajuste$ano <- as.factor(ajuste$ano)
-ajuste$color <-rep("grey",50)
-
-ajuste$color[ajuste$juri==0] <- "red"
-chart <- ggcharts::bar_chart(
-  ajuste,
-  juri_c,
-  adj.rate,
-  fill = color,
-  facet = ano
-)
-chart+
-  labs(y = "Tasa ajustada de mortalidad por causas poco utiles (nivel 1 y 2)", x = NULL, fill = NULL) +
-  theme_bw() +
-  theme(
-    strip.background  = element_blank(),
-    panel.grid.major = element_line(colour = "grey80"),
-    panel.border = element_blank(),
-    axis.ticks = element_line(size = 0),
-    panel.grid.minor.y = element_blank(),
-    panel.grid.major.y = element_blank(),
-    legend.position = "none"
-  ) 
-
-
-ajuste_g <- ggplot(ajuste, aes(x=juri_c, y=adj.rate))+
-  geom_bar(stat ="identity")+
-  coord_flip()+
-  facet_wrap(vars(as.factor(ano)))
-ajuste_g
+# Print table
+knitr::kable(ajuste)
 
 ```
 
