@@ -1151,13 +1151,19 @@ base_VP_2019_adultos <- base_VP_2019 %>%
   filter(grupedad == "16.45 a 49" | grupedad == "18.55 a 59"  | grupedad == "15.40 a 44" | grupedad == "14.35 a 39" |grupedad == "17.50 a 54" | grupedad == "13.30 a 34")
 
 base_VP_2019_adultos_mayores <- base_VP_2019 %>% 
-    filter(grupedad == "22.75 a 79" | grupedad == "24.85 y más"  | grupedad == "20.65 a 69" | grupedad == "21.70 a 74" |grupedad == "23.80 a 84" | grupedad == "19.60 a 64")
+    filter(grupedad == "22.75 a 79" | grupedad == "24.85 y más"  | grupedad == "20.65 a 69" | grupedad == "21.70 a 74" |grupedad == "23.80 a 84" | grupedad == "19.60 a 64") %>% 
+  mutate(grupedad2 = case_when(
+    grupedad == "23.80 a 84" ~ "25.80 y más" ,
+    grupedad == "24.85 y más" ~ "25.80 y más" ,
+    TRUE ~ grupedad ))
 
+#los siguientes grupos quedarían sin ajustar porque son muy pequeños:
 base_VP_2019_adultos_mayores1 <- base_VP_2019 %>% 
     filter(grupedad == "22.75 a 79" | grupedad == "20.65 a 69" | grupedad == "21.70 a 74" | grupedad == "19.60 a 64")
 
 base_VP_2019_adultos_mayores2 <- base_VP_2019 %>% 
     filter(grupedad == "24.85 y más"  | grupedad == "23.80 a 84")
+
 
 
 #bases poblacionales para cada grupo 2019
@@ -1191,12 +1197,69 @@ pop_adultos_mayores_2_2019 <- base_pop_2019 %>%
   mutate(total = rowSums(across(c(totalsex_1, totalsex_2))))
 
 
+##transformo las tablas de pob para unir con indicadores (NO LO USAMOS, USAMOS DIRECTO ARCHIVO SUBIDO)
+
+##POP ADULTOS 2019
+
+#pop_adultos_2019_ajust <- pop_adultos_2019 %>% 
+ #                 gather( key = grupo_edad,
+  #                        value= pop,
+                          2:16) %>% 
+                  mutate(sexo=case_when(
+                    grepl("*1$",grupo_edad)~ "1",
+                    grepl("*2$",grupo_edad)~ "2",
+                   grupo_edad== "total"  ~ "ambos"
+                  )) %>% 
+                    mutate(grupo_edad=fct_recode(grupo_edad,"30 a 34 años"="X30.34_1" ,
+                    "30 a 34 años"= "X30.34_2" ,
+                     "35 a 39 años"="X35.39_1",
+                      "35 a 39 años"="X35.39_2",
+                      "40 a 44 años"= "X40.44_1",
+                      "40 a 44 años"= "X40.44_2",
+                     "45 a 49 años"="X45.49_1" ,
+                     "45 a 49 años"="X45.49_2" ,
+                    "50 a 54 años"= "X50.54_1" ,
+                      "50 a 54 años"="X50.54_2" ,
+                      "55 a 59 años"="X55.59_1",
+                      "55 a 59 años"="X55.59_2",
+                      "tot_30_59"="total"  ))
+
+##POP ADULTOS MAYORES 2019
+
+#pop_adultos_mayores_2019_ajust <- pop_adultos_mayores_2019 %>% 
+ #                 gather( key = grupo_edad,
+  #                        value= pop,
+                          2:16) %>% 
+                  mutate(sexo=case_when(
+                    grepl("*1$",grupo_edad)~ "1",
+                    grepl("*2$",grupo_edad)~ "2",
+                   grupo_edad== "total"  ~ "ambos"
+                  )) %>% 
+                    mutate(grupo_edad=fct_recode(grupo_edad,"60 a 64 años"="X60.64_1" ,
+                    "60 a 64 años"= "X60.64_2" ,
+                     "65 a 69 años"="X65.69_1",
+                      "65 a 69 años"="X65.69_2",
+                      "70 a 74 años"= "X70.74_1",
+                      "70 a 74 años"= "X70.74_2",
+                     "75 a 79 años"="X75.79_1" ,
+                     "75 a 79 años"="X75.79_2" ,
+                    "80 a 84 años"= "X80.84_1" ,
+                      "80 a 84 años"="X80.84_2" ,
+                      "85 a 89 años"="X85.89_1",
+                      "85 a 89 años"="X85.89_2",
+                    "90 a 94 años"="X90.94_1",
+                      "90 a 94 años"="X90.94_2",
+                    "95 y mas años"="X95._1",
+                      "95 y mas años"="X95._2",
+                      "tot_60_ymas"="total"  ))
+
+
 
 ```
 
 ```{r diabetes }
 
-#cod diabetes: E10X E11X E12X E13X E14X E232 N083 N251
+#cod diabetes: E10X E11X E12X E13X E14X E232 N083 N251 
 #"E100","E101"
 #E102
 #E103
@@ -1212,16 +1275,44 @@ base_diabetes_2019_adultos <- base_VP_2019_adultos %>%
   filter (codmuer2 == "E10"|codmuer == "E10X" | codmuer == "E11X" | codmuer2 == "E11" | codmuer == "E12X" |codmuer2 == "E12" | 
             codmuer2 == "E13" | codmuer == "E13X" | codmuer == "E14X" |codmuer2 == "E14" | codmuer == "E232" | codmuer == "N083" | codmuer == "N251" | codmuer == "G590" | codmuer == "G632" | codmuer == "H280" | codmuer == "H360" | codmuer == "M142" ) 
 
-#E109
+base_diabetes_2019_adultos_tot <- base_diabetes_2019_adultos %>% 
+  group_by(ano, juri, grupedad, sexo) %>% 
+  summarise(n=n()) %>% 
+  pivot_wider(names_from = grupedad, values_from = n) %>% 
+  mutate(total = rowSums(across(c("13.30 a 34", "14.35 a 39", "15.40 a 44", "16.45 a 49", "17.50 a 54", "18.55 a 59")),na.rm =T))
+  
 
-#vendría el plot que no tiene sentido porque no hay registros
-#plot  <- des_diabetes_2019_bis %>%
-  #ggplot(aes(x = cie10_casusa_id,
-   #          y = casos,
-    #         color = sexo_id)) +
- # geom_boxplot()
+colnames(base_diabetes_2019_adultos_tot) <- c("ano",
+                      "juri"  ,
+                      "sexo",
+                      "30 a 34 años",
+                      "35 a 39 años",
+                      "40 a 44 años",
+                      "45 a 49 años",
+                      "50 a 54 años" ,
+                      "55 a 59 años",
+                      "tot_30_59" )
 
-#  facet_grid(jurisdicion_residencia_nombre ~ .)
+ind_diabetes <- base_diabetes_2019_adultos_tot %>% 
+                  gather( key = grupo_edad,
+                          value= n,
+                          4:10) 
+  
+#uno muertes con poblacion
+str(ind_diabetes)
+str( pop_adultos_2019_ajust)
+ind_diabetes$sexo <- as.character(ind_diabetes$sexo)
+
+ind_diabetes_tabla <- left_join (ind_diabetes,
+  pop_adultos_2019_ajust,
+  by = c("juri" = "CodProv", "grupo_edad","sexo"),
+  copy = FALSE,
+  suffix = c(".x", ".y"),
+  keep = FALSE
+)
+
+ind_diabetes_final <- ind_diabetes_tabla %>% 
+  mutate(indicador = round((n/pop*10000),2))
 
 ```
 
@@ -1235,7 +1326,7 @@ base_enfcircu_2019_adultos <- base_VP_2019_adultos %>%
 # códigos de causa poco útiles: I45 I450 I451 I452 I453 I454 I455 I456 I458 I459 I46 I460 I461 I469
 
 prueba <- base_enfcircu_2019_adultos %>% 
-  group_by(ano, juri, grupedad,sexo) %>%#aca agregue sexo 
+  group_by(ano, juri, grupedad, sexo) %>% #aca agregue sexo 
   summarise(n=n()) %>% 
   pivot_wider(names_from = grupedad, values_from = n) %>% 
   mutate(total = rowSums(across(c("13.30 a 34", "14.35 a 39", "15.40 a 44", "16.45 a 49", "17.50 a 54", "18.55 a 59")),na.rm =T))
@@ -1257,40 +1348,14 @@ ind_enfcircu_v <- prueba %>%
                           value= n,
                           4:10) 
   
-##transformo la tabla de pob "pop_adultos_2019" para unir con ind_enfciru
-
-
-pop_adultos_2019_ajust <- pop_adultos_2019 %>% 
-                  gather( key = grupo_edad,
-                          value= pop,
-                          2:16) %>% 
-                  mutate(sexo=case_when(
-                    grepl("*1$",grupo_edad)~ "1",
-                    grepl("*2$",grupo_edad)~ "2",
-                    
-                   grupo_edad== "total"  ~ "ambos"
-                  )) %>% 
-                    mutate(grupo_edad=fct_recode(grupo_edad,"30 a 34 años"="X30.34_1" ,
-                    "30 a 34 años"= "X30.34_2" ,
-                     "35 a 39 años"="X35.39_1",
-                      "35 a 39 años"="X35.39_2",
-                      "40 a 44 años"= "X40.44_1",
-                      "40 a 44 años"= "X40.44_2",
-                     "45 a 49 años"="X45.49_1" ,
-                     "45 a 49 años"="X45.49_2" ,
-                    "50 a 54 años"= "X50.54_1" ,
-                      "50 a 54 años"="X50.54_2" ,
-                      "55 a 59 años"="X55.59_1",
-                      "55 a 59 años"="X55.59_2",
-                      "tot_30_59"="total"  ))
-
 #uno muertes con poblacion
 str(ind_enfcircu_v)
 str( pop_adultos_2019_ajust)
 ind_enfcircu_v$sexo <- as.character(ind_enfcircu_v$sexo)
+
 prueba2 <- left_join (ind_enfcircu_v,
   pop_adultos_2019_ajust,
-  by = c("juri" = "CodProv", "grupo_edad","sexo"),
+  by = c("juri" = "CodProv", "grupo_edad", "sexo"),
   copy = FALSE,
   suffix = c(".x", ".y"),
   keep = FALSE
@@ -1300,14 +1365,55 @@ ind_enfcircu <- prueba2 %>%
   mutate(indicador = round((n/pop*10000),2))
 
 
-                  
-  
-  
-  
 ```
 
 ```{r cáncer cérvix}
+#cod cáncer cérvix: C53, C538, C539, C54, C543, C548, C549, C55X
+str(base_VP_2019_adultos)
 
+base_VP_2019_adultos_fem <- base_VP_2019_adultos %>% 
+  filter(sexo == 2)
+
+base_ccu_2019_adultos <- base_VP_2019_adultos_fem %>%
+  filter (codmuer2 == "C53"|codmuer2 == "C54" | codmuer == "C538" | codmuer == "C539" | codmuer == "C543" |codmuer == "C548" | codmuer == "C549" | codmuer == "C55X") 
+
+base_ccu_2019_adultos_tot <- base_ccu_2019_adultos %>% 
+  group_by(ano, juri, grupedad) %>% 
+  summarise(n=n()) %>% 
+  pivot_wider(names_from = grupedad, values_from = n) %>% 
+  mutate(total = rowSums(across(c("13.30 a 34", "14.35 a 39", "15.40 a 44", "16.45 a 49", "17.50 a 54", "18.55 a 59")),na.rm =T))
+  
+
+colnames(base_ccu_2019_adultos_tot) <- c("ano",
+                      "juri",
+                      "30 a 34 años",
+                      "35 a 39 años",
+                      "40 a 44 años",
+                      "45 a 49 años",
+                      "50 a 54 años" ,
+                      "55 a 59 años",
+                      "tot_30_59" )
+
+ind_ccu <- base_ccu_2019_adultos_tot %>% 
+                  gather( key = grupo_edad,
+                          value= n,
+                          4:9) 
+  
+#uno muertes con poblacion
+str(ind_ccu)
+str( pop_adultos_2019_ajust)
+
+
+ind_ccu_tabla <- left_join (ind_ccu,
+  pop_adultos_2019_ajust,
+  by = c("juri" = "CodProv", "grupo_edad"),
+  copy = FALSE,
+  suffix = c(".x", ".y"),
+  keep = FALSE
+)
+
+ind_ccu_final <- ind_ccu_tabla %>% 
+  mutate(indicador = round((n/pop*10000),2))
 
 
 ```
@@ -1317,9 +1423,54 @@ ind_enfcircu <- prueba2 %>%
 ```
 
 ```{r enf crónicas respi inferiores}
+#nos faltan los códigos
 ```
 
 ```{r caídas}
+#cod caídas:
+
+base_caidas_2019_adultos_mayores <- base_VP_2019_adultos %>%
+  filter (codmuer2 == "E10"|codmuer == "E10X" | codmuer == "E11X" | codmuer2 == "E11" | codmuer == "E12X" |codmuer2 == "E12" | 
+            codmuer2 == "E13" | codmuer == "E13X" | codmuer == "E14X" |codmuer2 == "E14" | codmuer == "E232" | codmuer == "N083" | codmuer == "N251" | codmuer == "G590" | codmuer == "G632" | codmuer == "H280" | codmuer == "H360" | codmuer == "M142" ) 
+
+base_diabetes_2019_adultos_tot <- base_diabetes_2019_adultos %>% 
+  group_by(ano, juri, grupedad, sexo) %>% 
+  summarise(n=n()) %>% 
+  pivot_wider(names_from = grupedad, values_from = n) %>% 
+  mutate(total = rowSums(across(c("13.30 a 34", "14.35 a 39", "15.40 a 44", "16.45 a 49", "17.50 a 54", "18.55 a 59")),na.rm =T))
+  
+
+colnames(base_diabetes_2019_adultos_tot) <- c("ano",
+                      "juri"  ,
+                      "sexo",
+                      "30 a 34 años",
+                      "35 a 39 años",
+                      "40 a 44 años",
+                      "45 a 49 años",
+                      "50 a 54 años" ,
+                      "55 a 59 años",
+                      "tot_30_59" )
+
+ind_diabetes <- base_diabetes_2019_adultos_tot %>% 
+                  gather( key = grupo_edad,
+                          value= n,
+                          4:10) 
+  
+#uno muertes con poblacion
+str(ind_diabetes)
+str( pop_adultos_2019_ajust)
+ind_diabetes$sexo <- as.character(ind_diabetes$sexo)
+
+ind_diabetes_tabla <- left_join (ind_diabetes,
+  pop_adultos_2019_ajust,
+  by = c("juri" = "CodProv", "grupo_edad","sexo"),
+  copy = FALSE,
+  suffix = c(".x", ".y"),
+  keep = FALSE
+)
+
+ind_diabetes_final <- ind_diabetes_tabla %>% 
+  mutate(indicador = round((n/pop*10000),2))
 
 ```
 
@@ -1350,7 +1501,6 @@ poblaciones$gr_edad <- recode_factor(poblaciones$gr_edad,
                                              POB1519="15 a 19 años",
                                              POB2024="20 a 24 años",
                                              POB2529="25 a 29 años",
-                                             
                                              POB3034="30 a 34 años",
                                              POB3539="35 a 39 años",
                                              POB4044="40 a 44 años",
