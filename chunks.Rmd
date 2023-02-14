@@ -25,12 +25,12 @@ Para calcular los indicadores, en primer lugar instalamos los paquetes y activam
 #install.packages("writexl")
 #install.packages("ggplot2")
 #install.packages("rlang")
-install.packages("knitr")
-install.packages("DT")
-install.packages("ggpubr")
-install.packages("gt")
-install.packages("gtExtras")
-install.packages("svglite")
+#install.packages("knitr")
+#install.packages("DT")
+#install.packages("ggpubr")
+#install.packages("gt")
+#install.packages("gtExtras")
+#install.packages("svglite")
 
 #activar librerías
 library(tidyverse)
@@ -45,6 +45,120 @@ library(ggpubr)
 library(gt)
 library(gtExtras)
 library(svglite)
+```
+# Coberturas SRP1
+```{r coberturas SRP1}
+cob_enero <- read_xlsx("cob_muni_pormes_2022_ESP.xlsx",
+                       sheet = "enero", range ="A1:K379") 
+
+cob_febrero <- read_xlsx("cob_muni_pormes_2022_ESP.xlsx",
+                       sheet = "febrero", range ="A1:K379")
+
+cob_marzo <- read_xlsx("cob_muni_pormes_2022_ESP.xlsx",
+                       sheet = "marzo", range ="A1:K379")
+
+cob_abril <- read_xlsx("cob_muni_pormes_2022_ESP.xlsx",
+                       sheet = "abril", range ="A1:K379")
+
+cob_mayo <- read_xlsx("cob_muni_pormes_2022_ESP.xlsx",
+                       sheet = "mayo", range ="A1:K379")
+
+cob_junio <- read_xlsx("cob_muni_pormes_2022_ESP.xlsx",
+                       sheet = "junio", range ="A1:K379")
+
+cob_julio <- read_xlsx("cob_muni_pormes_2022_ESP.xlsx",
+                       sheet = "julio", range ="A1:K379")
+
+cob_agosto <- read_xlsx("cob_muni_pormes_2022_ESP.xlsx",
+                       sheet = "agosto", range ="A1:K379")
+
+cob_septiembre <- read_xlsx("cob_muni_pormes_2022_ESP.xlsx",
+                       sheet = "septiembre", range ="A1:K379")
+
+cob_octubre <- read_xlsx("cob_muni_pormes_2022_ESP.xlsx",
+                       sheet = "octubre", range ="A1:K379")
+
+cob_noviembre <- read_xlsx("cob_muni_pormes_2022_ESP.xlsx",
+                       sheet = "noviembre", range ="A1:K379")
+
+cob_diciembre <- read_xlsx("cob_muni_pormes_2022_ESP.xlsx",
+                       sheet = "diciembre", range ="A1:K379")
+
+
+cob_enero <- cob_enero %>% 
+  select(juri, muni, dosis)
+
+cob_febrero <- cob_febrero %>% 
+  select(juri, muni, dosis)
+
+cob_marzo <- cob_marzo %>% 
+  select(juri, muni, dosis)
+
+cob_abril <- cob_abril %>% 
+  select(juri, muni, dosis)
+
+cob_mayo <- cob_mayo %>% 
+  select(juri, muni, dosis)
+
+cob_junio <- cob_junio %>% 
+  select(juri, muni, dosis)
+
+cob_julio <- cob_julio %>% 
+  select(juri, muni, dosis)
+
+cob_agosto <- cob_agosto %>% 
+  select(juri, muni, dosis)
+
+cob_septiembre <- cob_septiembre %>% 
+  select(juri, muni, dosis)
+
+cob_octubre <- cob_octubre %>% 
+  select(juri, muni, dosis)
+
+cob_noviembre <- cob_noviembre %>% 
+  select(juri, muni, dosis)
+
+cob_diciembre <- cob_diciembre %>% 
+  select(juri, muni, dosis)
+
+lista <- list(cob_enero, cob_febrero, cob_marzo, cob_abril, cob_mayo, cob_junio, cob_julio, cob_agosto, cob_septiembre, cob_octubre, cob_noviembre, cob_diciembre)
+
+coberturas <- lista %>% 
+  reduce(inner_join, by=c("juri", "muni"))
+
+coberturas[coberturas$juri=="CABA",1] <- "Ciudad Autónoma de Buenos Aires"
+coberturas[coberturas$juri=="Tierra del Fuego",1] <- "Tierra del Fuego, Antártida e Islas del Atlántico Sur"
+
+columnas <- c("juri", "muni", "enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre")
+
+colnames(coberturas) <- columnas
+
+unique(coberturas$juri)
+
+coberturas2 <-  coberturas %>% 
+  mutate(total = rowSums(across(columnas[3:14]),na.rm =T)) %>% 
+  select(juri, muni, total) %>% 
+  group_by(juri) %>% 
+  summarise(n = sum(total)) 
+
+#para el denominador de las coberturas se utilizan los nacidos vivos de año anterior a las dosis aplicadas. En este caso usaremos 2020 por ser el dato más reciente al cual tenemos acceso.
+
+base_nacidos_vivos <- read.csv2("MINSAL - Nacidos vivos 2005-2020 jurisdicción residencia de la madre.csv", encoding="latin1", sep = ",")
+
+#mirar variables
+str(base_nacidos_vivos)
+
+bnv <- base_nacidos_vivos %>% 
+  filter(anio == "2020") %>% 
+  select(jurisdicion_residencia_nombre, nacimientos_cantidad) %>% 
+  group_by(jurisdicion_residencia_nombre) %>% 
+  summarise(total= sum(nacimientos_cantidad))
+
+cob_final <- left_join(bnv, coberturas2, by = c("jurisdicion_residencia_nombre" = "juri"))
+
+cob_final2 <- cob_final %>% 
+  mutate(cobertura = n/total*100)
+
 ```
 
 # Razón de mortalidad materna
@@ -989,7 +1103,7 @@ graf_animado <- animate(graf_animado, renderer = magick_renderer())
 
 ```
 
-## Mortalidad por agresiones en adolescentes
+# Mortalidad por agresiones en adolescentes
 - Se calcula como número de muertes por agresiones entre 10 y 29 años. / población proyectada a mitad de periodo de 10 a 29 años , mismo año y provincia (evaluar dividir 10-19 y 20-29)
 - Indicador para año 2019
 ```{r indicadores mortalidad nya, echo=TRUE}
@@ -1065,51 +1179,57 @@ ind_mortalidad_agresiones <- left_join(mort_nya_agresiones, total_nya,
 
 ```
 
+# Mortalidad en adultos y adultos mayores
+
+##Preparación de las bases
 ```{r mortalidad ADULTOS Y ADULTOS MAYORES preparación bases, echo=TRUE}
-#primero armamos catalogo cie 10 con listas GBD y listas argentina 
 
-#traigo catalogo cie 10 con listas gbd
+### debido al uso de los códigos con 4 dígitos de la base de mortalidad, la primera parte del script la dejo comentada porque no la utilizamos (no la borro porque, en caso de querer utilizar las listas, si se consiguiera una base que vincule las listas con códigos de 4 dígitos, podría resultar de utlidad) Dejo con 1# la lista de código y con 2## los comentarios### 
 
-catalogo_CIE10 <- read_excel("Catalogo_CIE_completo.xls",
-                       sheet = "CatalogoVolumen1", range ="A5:Y14423" )
-str(catalogo_CIE10)
+##primero armamos catalogo cie 10 con listas GBD y listas argentina 
+
+##traigo catalogo cie 10 con listas gbd
+
+#catalogo_CIE10 <- read_excel("Catalogo_CIE_completo.xls",
+#                       sheet = "CatalogoVolumen1", range ="A5:Y14423" )
+#str(catalogo_CIE10)
 
 #catalogo_CIE10 <- catalogo_CIE10 %>%
 #  rename(`Lista GBD  Grupos  (1,2, 3, 4)` = GBD)
 
-cat_gbd <- catalogo_CIE10 %>% 
-  select(No, Clave, Nombre,  `Lista GBD  Grupos  (1,2, 3, 4)`)
+#cat_gbd <- catalogo_CIE10 %>% 
+#  select(No, Clave, Nombre,  `Lista GBD  Grupos  (1,2, 3, 4)`)
   
-str(cat_gbd)
+#str(cat_gbd)
 
-#borrar el último número de Clave y traer por derecha a cod3
+##borrar el último número de Clave y traer por derecha a cod3
 
-class(cat_gbd$Clave)
+#class(cat_gbd$Clave)
 
-cat_gbd$Clave2 <- str_sub(cat_gbd$Clave, 1, 3)
+#cat_gbd$Clave2 <- str_sub(cat_gbd$Clave, 1, 3)
 
-#traigo base msal con lista msal
+##traigo base msal con lista msal
 
-base_mortalidad <- read.csv2("MINSAL-defunciones-2005-2020.csv", encoding="latin1", sep = ",")
+#base_mortalidad <- read.csv2("MINSAL-defunciones-2005-2020.csv", encoding="latin1", sep = ",")
 
-#mirar variables
-str(base_mortalidad)
+##mirar variables
+#str(base_mortalidad)
 
-listas_arg_completa <- base_mortalidad %>%
-  select(lista_clasificacion, cie10_casusa_id) %>% 
-  distinct(lista_clasificacion, cie10_casusa_id)
+#listas_arg_completa <- base_mortalidad %>%
+#  select(lista_clasificacion, cie10_casusa_id) %>% 
+#  distinct(lista_clasificacion, cie10_casusa_id)
 
-#str(listas_arg)
+##str(listas_arg)
 #unique(listas_arg$cie10_casusa_id)
 
-juntas_completa <- inner_join(
-  cat_gbd,
-  listas_arg_completa,
-  by = c("Clave" = "cie10_casusa_id"),
-  copy = FALSE,
-  suffix = c(".x", ".y"),
-  keep = FALSE
-)
+#juntas_completa <- inner_join(
+#  cat_gbd,
+#  listas_arg_completa,
+#  by = c("Clave" = "cie10_casusa_id"),
+#  copy = FALSE,
+#  suffix = c(".x", ".y"),
+#  keep = FALSE)
+
 
 ####BASE VP
 base_mortalidad_VP <- read.csv2("def2019VP.csv", encoding="UTF-8", sep = ",")
@@ -1117,38 +1237,43 @@ str(base_mortalidad_VP)
 unique(base_mortalidad_VP$codmuer)
 unique(base_mortalidad_VP$grupedad)
 
-#reemplazamos X del final por espacio en códigos de 4 dígitos
-base_mortalidad_VP$codmuer[str_sub(base_mortalidad_VP$codmuer, -1, -1) == "X"] <-
-  gsub("X", "", base_mortalidad_VP$codmuer[str_sub(base_mortalidad_VP$codmuer, -1, -1) == "X"])
+##reemplazamos X del final por espacio en códigos de 4 dígitos
+#base_mortalidad_VP$codmuer[str_sub(base_mortalidad_VP$codmuer, -1, -1) == "X"] <-
+#  gsub("X", "", base_mortalidad_VP$codmuer[str_sub(base_mortalidad_VP$codmuer, -1, -1) == "X"])
 
 ###año 2019
 
-base_VP_2019 <- base_mortalidad_VP %>%
-  dplyr::filter (ano == "2019")
+#base_VP_2019 <- base_mortalidad_VP %>%  #no hace falta porque en este caso es solo 2019
+#  dplyr::filter (ano == "2019")
 
+##generamos el código con solo 3 dígitos
 base_VP_2019$codmuer2 <- str_sub(base_VP_2019$codmuer, 1, 3)
 
-mortalidad_2019 <-  left_join(
-  base_VP_2019,
-  juntas_completa,
-  by = c("codmuer2" = "Clave2"),
-  copy = FALSE,
-  suffix = c(".x", ".y"),
-  keep = FALSE
-)
+#esta base va a tener los códigos de 3 dígitos y de 4 dígitos (que vienen de base VP) unidos con las listas GBD y la lista de Argentina (que vienen en juntas_completa)
+#mortalidad_2019 <-  left_join(
+#  base_VP_2019,
+#  juntas_completa,
+#  by = c("codmuer2" = "Clave2"),
+#  copy = FALSE,
+#  suffix = c(".x", ".y"),
+#  keep = FALSE)
 
-str(mortalidad_2019)
-table(mortalidad_2019$lista_clasificacion)
+#str(mortalidad_2019)
+#table(mortalidad_2019$lista_clasificacion)
 
-#quedaron códigos con 3 dígitos, porque en la base del minsal están así entonces vienen así de la lista de argentina
+###quedaron códigos con 3 dígitos, porque en la base del minsal están así entonces vienen así de la lista de argentina
 #pero.. si no usamos las listas, uso directo la base vp, sin las listas y puedo usar los códigos de 4 dígitos
-#las bases de mortalidad de 2019 son: base_VP_2019 y mortalidad_2019
-#armo sobre la de mortalidad con 4 dígitos los grupos de edad:
 
+#las bases de mortalidad de 2019 son: base_VP_2019 y mortalidad_2019
+
+##armo sobre la base de mortalidad con 4 dígitos (base_VP_2019) los grupos de edad:
+
+#ADULTOS
 unique(base_VP_2019$grupedad)
 base_VP_2019_adultos <- base_VP_2019 %>% 
   filter(grupedad == "16.45 a 49" | grupedad == "18.55 a 59"  | grupedad == "15.40 a 44" | grupedad == "14.35 a 39" |grupedad == "17.50 a 54" | grupedad == "13.30 a 34")
 
+#ADULTOS MAYORES
 base_VP_2019_adultos_mayores <- base_VP_2019 %>% 
     filter(grupedad == "22.75 a 79" | grupedad == "24.85 y más"  | grupedad == "20.65 a 69" | grupedad == "21.70 a 74" |grupedad == "23.80 a 84" | grupedad == "19.60 a 64") %>% 
   mutate(grupedad2 = case_when(
@@ -1156,6 +1281,7 @@ base_VP_2019_adultos_mayores <- base_VP_2019 %>%
     grupedad == "24.85 y más" ~ "25.80 y más" ,
     TRUE ~ grupedad ))
 
+#ADULTOS MAYORES DIVIDIDOS EN 2 SUBGRUPOS (60-80 Y 80 Y MÁS)
 #los siguientes grupos quedarían sin ajustar porque son muy pequeños:
 base_VP_2019_adultos_mayores1 <- base_VP_2019 %>% 
     filter(grupedad == "22.75 a 79" | grupedad == "20.65 a 69" | grupedad == "21.70 a 74" | grupedad == "19.60 a 64")
@@ -1164,25 +1290,28 @@ base_VP_2019_adultos_mayores2 <- base_VP_2019 %>%
     filter(grupedad == "24.85 y más"  | grupedad == "23.80 a 84")
 
 
+#armamos las bases poblacionales para cada grupo para el año 2019 (a partir de las poblaciones del indec del gamma)
 
-#bases poblacionales para cada grupo 2019
 base_pop <- read.csv2("poblacion indec gamma.csv", encoding="latin1", sep = ",")
 
 base_pop_2019 <- base_pop %>% 
   filter(Ano == "2019")
 
+#ADULTOS
 pop_adultos_2019 <- base_pop_2019 %>%
   select(CodProv, Sexo, X30.34, X35.39, X40.44, X45.49, X50.54, X55.59) %>% 
   mutate(totalsex = rowSums(across(c(X30.34, X35.39, X40.44, X45.49, X50.54, X55.59)))) %>% 
   pivot_wider(names_from = Sexo, values_from = c(X30.34, X35.39, X40.44, X45.49, X50.54, X55.59, totalsex)) %>% 
   mutate(total = rowSums(across(c(totalsex_1, totalsex_2))))
 
+#ADULTOS MAYORES
 pop_adultos_mayores_2019 <- base_pop_2019 %>%
   select(CodProv, Sexo, X60.64, X65.69, X70.74, X75.79, X80.84, X85.89, X90.94, X95.) %>% 
   mutate(totalsex = rowSums(across(c(X60.64, X65.69, X70.74, X75.79, X80.84, X85.89, X90.94, X95.)))) %>% 
   pivot_wider(names_from = Sexo, values_from = c(X60.64, X65.69, X70.74, X75.79, X80.84, X85.89, X90.94, X95., totalsex)) %>% 
   mutate(total = rowSums(across(c(totalsex_1, totalsex_2))))
 
+#ADULTOS MAYORES DIVIDIDOS EN 2 SUBGRUPOS (60-80 Y 80 Y MÁS)
 pop_adultos_mayores_1_2019 <- base_pop_2019 %>%
   select(CodProv, Sexo, X60.64, X65.69, X70.74, X75.79) %>% 
   mutate(totalsex = rowSums(across(c(X60.64, X65.69, X70.74, X75.79)))) %>% 
@@ -1196,89 +1325,83 @@ pop_adultos_mayores_2_2019 <- base_pop_2019 %>%
   mutate(total = rowSums(across(c(totalsex_1, totalsex_2))))
 
 
-##transformo las tablas de pob para unir con indicadores (NO LO USAMOS, USAMOS DIRECTO ARCHIVO SUBIDO)
+##transformo las tablas de poblaciones para unir con indicadores (NO LO USAMOS, USAMOS DIRECTO ARCHIVO SUBIDO)
 
 ##POP ADULTOS 2019
 
-#pop_adultos_2019_ajust <- pop_adultos_2019 %>% 
- #                 gather( key = grupo_edad,
-  #                        value= pop,
-        #                  2:16) %>% 
-         #         mutate(sexo=case_when(
-          #          grepl("*1$",grupo_edad)~ "1",
-           #         grepl("*2$",grupo_edad)~ "2",
-            #       grupo_edad== "total"  ~ "ambos"
-             #     )) %>% 
-              #      mutate(grupo_edad=fct_recode(grupo_edad,"30 a 34 años"="X30.34_1" ,
-               #     "30 a 34 años"= "X30.34_2" ,
-                #     "35 a 39 años"="X35.39_1",
-                 #     "35 a 39 años"="X35.39_2",
-                  #    "40 a 44 años"= "X40.44_1",
-                   #   "40 a 44 años"= "X40.44_2",
-                  #   "45 a 49 años"="X45.49_1" ,
-                   #  "45 a 49 años"="X45.49_2" ,
-                  #  "50 a 54 años"= "X50.54_1" ,
-                   #   "50 a 54 años"="X50.54_2" ,
-                    #  "55 a 59 años"="X55.59_1",
-                     # "55 a 59 años"="X55.59_2",
-                    #  "tot_30_59"="total"  ))
+pop_adultos_2019_ajust <- pop_adultos_2019 %>% 
+                  gather( key = grupo_edad,
+                          value= pop,
+                          2:16) %>% 
+                  mutate(sexo=case_when(
+                    grepl("*1$",grupo_edad)~ "1",
+                    grepl("*2$",grupo_edad)~ "2",
+                   grupo_edad== "total"  ~ "ambos"
+                  )) %>% 
+                    mutate(grupo_edad=fct_recode(grupo_edad,"30 a 34 años"="X30.34_1" ,
+                    "30 a 34 años"= "X30.34_2" ,
+                    "35 a 39 años"="X35.39_1",
+                    "35 a 39 años"="X35.39_2",
+                    "40 a 44 años"= "X40.44_1",
+                    "40 a 44 años"= "X40.44_2",
+                    "45 a 49 años"="X45.49_1" ,
+                    "45 a 49 años"="X45.49_2" ,
+                    "50 a 54 años"= "X50.54_1" ,
+                    "50 a 54 años"="X50.54_2" ,
+                    "55 a 59 años"="X55.59_1",
+                    "55 a 59 años"="X55.59_2",
+                    "tot_30_59"="total"  ))
 
 ##POP ADULTOS MAYORES 2019
 
-#pop_adultos_mayores_2019_ajust <- pop_adultos_mayores_2019 %>% 
- #                 gather( key = grupo_edad,
-  #                        value= pop,
-               #           2:16) %>% 
-                #  mutate(sexo=case_when(
-                 #   grepl("*1$",grupo_edad)~ "1",
-                  #  grepl("*2$",grupo_edad)~ "2",
-                  # grupo_edad== "total"  ~ "ambos"
-                  #)) %>% 
-                   # mutate(grupo_edad=fct_recode(grupo_edad,"60 a 64 años"="X60.64_1" ,
-                    #"60 a 64 años"= "X60.64_2" ,
-                    # "65 a 69 años"="X65.69_1",
-                    #  "65 a 69 años"="X65.69_2",
-                     # "70 a 74 años"= "X70.74_1",
-                    #  "70 a 74 años"= "X70.74_2",
-                    # "75 a 79 años"="X75.79_1" ,
-                     #"75 a 79 años"="X75.79_2" ,
-                    #"80 a 84 años"= "X80.84_1" ,
-                     # "80 a 84 años"="X80.84_2" ,
-                    #  "85 a 89 años"="X85.89_1",
-                    #  "85 a 89 años"="X85.89_2",
-                    #"90 a 94 años"="X90.94_1",
-                    #  "90 a 94 años"="X90.94_2",
-                    #"95 y mas años"="X95._1",
-                    #  "95 y mas años"="X95._2",
-                     # "tot_60_ymas"="total"  ))
+# PENSARLO
+  
+pop_adultos_mayores_2019_ajust <- pop_adultos_mayores_2019 %>% 
+                  gather( key = grupo_edad,
+                          value= pop,
+                          2:20) %>% 
+                  mutate(sexo=case_when(
+                    grepl("*1$",grupo_edad)~ "1",
+                    grepl("*2$",grupo_edad)~ "2",
+                   grupo_edad== "total"  ~ "ambos"
+                  )) %>% 
+                    mutate(grupo_edad=fct_recode(grupo_edad,"60 a 64 años"="X60.64_1" ,
+                  "60 a 64 años"= "X60.64_2" ,
+                    "65 a 69 años"="X65.69_1",
+                      "65 a 69 años"="X65.69_2",
+                      "70 a 74 años"= "X70.74_1",
+                      "70 a 74 años"= "X70.74_2",
+                     "75 a 79 años"="X75.79_1" ,
+                     "75 a 79 años"="X75.79_2" ,
+                    "80 a 84 años"= "X80.84_1" ,
+                      "80 a 84 años"="X80.84_2" ,
+                      "85 a 89 años"="X85.89_1",
+                      "85 a 89 años"="X85.89_2",
+                    "90 a 94 años"="X90.94_1",
+                      "90 a 94 años"="X90.94_2",
+                    "95 y mas años"="X95._1",
+                      "95 y mas años"="X95._2",
+                      "tot_60_ymas"="total"  ))
 
 ```
-
+##Mortalildad por diabetes
 ```{r diabetes }
 
-#cod diabetes: E10X E11X E12X E13X E14X E232 N083 N251 
-#"E100","E101"
-#E102
-#E103
-#E104
-#E105
-#E106
-#E107
-#E108
-#E109
+#cod diabetes: E10X E11X E12X E13X E14X E232 N083 N251 E100 E101 E102 E103 E104 E105 E106 E107 E108 E109 
 #(G590 G632 H280 H360 M142 son condiciones asociadas) 
 
+#filtramos de la base de mortalidad de adultos por los códigos de diabetes
 base_diabetes_2019_adultos <- base_VP_2019_adultos %>%
-  filter (codmuer2 == "E10"|codmuer == "E10X" | codmuer == "E11X" | codmuer2 == "E11" | codmuer == "E12X" |codmuer2 == "E12" | 
-            codmuer2 == "E13" | codmuer == "E13X" | codmuer == "E14X" |codmuer2 == "E14" | codmuer == "E232" | codmuer == "N083" | codmuer == "N251" | codmuer == "G590" | codmuer == "G632" | codmuer == "H280" | codmuer == "H360" | codmuer == "M142" ) 
+  filter (codmuer2 == "E10"|codmuer == "E10X" | codmuer == "E11X" | codmuer2 == "E11" | codmuer == "E12X" |codmuer2 == "E12" | codmuer2 == "E13" | codmuer == "E13X" | codmuer == "E14X" |codmuer2 == "E14" | codmuer == "E232" | codmuer == "N083" | codmuer == "N251" | codmuer == "G590" | codmuer == "G632" | codmuer == "H280" | codmuer == "H360" | codmuer == "M142" ) 
 
+#agrupamos y contamos el total de muertes
 base_diabetes_2019_adultos_tot <- base_diabetes_2019_adultos %>% 
   group_by(ano, juri, grupedad, sexo) %>% 
   summarise(n=n()) %>% 
   pivot_wider(names_from = grupedad, values_from = n) %>% 
   mutate(total = rowSums(across(c("13.30 a 34", "14.35 a 39", "15.40 a 44", "16.45 a 49", "17.50 a 54", "18.55 a 59")),na.rm =T))
   
-
+#renombramos columnas para que quede igual a la tabla poblacional para hacer el ajuste de tasas
 colnames(base_diabetes_2019_adultos_tot) <- c("ano",
                       "juri"  ,
                       "sexo",
@@ -1295,7 +1418,7 @@ ind_diabetes <- base_diabetes_2019_adultos_tot %>%
                           value= n,
                           4:10) 
   
-#uno muertes con poblacion
+#unimos muertes con poblacion
 str(ind_diabetes)
 str( pop_adultos_2019_ajust)
 ind_diabetes$sexo <- as.character(ind_diabetes$sexo)
@@ -1312,7 +1435,7 @@ ind_diabetes_final <- ind_diabetes_tabla %>%
   mutate(indicador = round((n/pop*10000),2))
 
 ```
-
+##Mortalildad por enfermedades del sistema circulatorio
 ```{r enf sistema circulatorio}
 #selecciono los códigos que corresponden a enfermedades del sistema circulatorio (las que comienzan con I en el código)
 base_VP_2019_adultos$codmuer3 <- str_sub(base_VP_2019_adultos$codmuer, 1, 1)
@@ -1363,7 +1486,7 @@ ind_enfcircu <- prueba2 %>%
 
 
 ```
-
+##Mortalildad por cáncer de cérvix
 ```{r cáncer cérvix}
 #cod cáncer cérvix: C53, C538, C539, C54, C543, C548, C549, C55X
 str(base_VP_2019_adultos)
@@ -1414,15 +1537,109 @@ ind_ccu_final <- ind_ccu_tabla %>%
 
 
 ```
-
+##Mortalildad por deficiencias nutricionales 
 ```{r def nutricionales}
+#cod def nutricionales: D50-D53, D64, E00-E02, E40-E46, E50-E64 
+
+vec <- sprintf("D%02d", 50:53)
+vec1 <- sprintf("E%02d", 40:46)
+vec2 <- sprintf("E%02d", 50:64)
+
+vec
+vec1
+vec2
+
+
+#filtramos de la base de mortalidad de adultos por los códigos de def nutricionales
+base_dn_2019_adultos_mayores <- base_VP_2019_adultos_mayores %>%
+  filter (codmuer2 %in% vec | codmuer2 == "D64" |codmuer2 == "E00" | codmuer2 == "E01" | codmuer2 == "E02" | codmuer2 %in% vec1 | codmuer2 %in% vec2)
+
+vec3 <- colnames(base_dn_2019_adultos_m_tot)
+
+#agrupamos y contamos el total de muertes
+base_dn_2019_adultos_m_tot <- base_dn_2019_adultos_mayores %>% 
+  group_by(ano, juri, grupedad2, sexo) %>% 
+  summarise(n=n()) %>% 
+  pivot_wider(names_from = grupedad2, values_from = n) %>% 
+  mutate(total = rowSums(across(vec3[4:8]),na.rm =T))
+  
+#renombramos columnas para que quede igual a la tabla poblacional para hacer el ajuste de tasas
+colnames(base_dn_2019_adultos_m_tot) <- c("ano",
+                      "juri"  ,
+                      "sexo",
+                      "60 a 64 años",
+                      "65 a 69 años",
+                      "70 a 74 años",
+                      "75 a 79 años",
+                      "80 años y más",
+                      "total_60_mayores80")
+  
+ind_dn <- base_dn_2019_adultos_m_tot %>% 
+                  gather( key = grupo_edad,
+                          value= n,
+                          4:9) 
+  
+#unimos muertes con poblacion
+#str(ind_diabetes)
+#str( pop_adultos_2019_ajust)
+#ind_diabetes$sexo <- as.character(ind_diabetes$sexo)
+
+#ind_diabetes_tabla <- left_join (ind_diabetes,
+#  pop_adultos_2019_ajust,
+#  by = c("juri" = "CodProv", "grupo_edad","sexo"),
+#  copy = FALSE,
+#  suffix = c(".x", ".y"),
+#  keep = FALSE
+#)
+
+#ind_diabetes_final <- ind_diabetes_tabla %>% 
+#  mutate(indicador = round((n/pop*10000),2))
 
 ```
-
+##Mortalildad por enfermedades respiratorias crónicas 
 ```{r enf crónicas respi inferiores}
 #nos faltan los códigos
-```
+#de manera preliminar, utilizamos los códigos de enfermedad pulmonar obstructiva crónica (J40 a J44)
 
+vec <- sprintf("J%02d", 40:44)
+
+vec
+
+base_ep_2019_adultos_mayores <- base_VP_2019_adultos_mayores %>%
+  filter (codmuer2 %in% vec) 
+
+vec2 <- colnames(base_ep_2019_adultos_m_tot)
+#vec2 <-c(  "19.60 a 64"  "20.65 a 69"  "21.70 a 74"  "22.75 a 79" 
+#[8] "23.80 a 84"  "24.85 y más")
+
+base_ep_2019_adultos_m_tot <- base_ep_2019_adultos_mayores %>% 
+  group_by(ano, juri, grupedad2, sexo) %>% 
+  summarise(n=n()) %>% 
+  pivot_wider(names_from = grupedad2, values_from = n) %>% 
+  mutate(total = rowSums(across(vec2[4:8]),na.rm =T))
+  
+
+colnames(base_ep_2019_adultos_m_tot) <- c("ano",
+                      "juri"  ,
+                      "sexo",
+                      "60 a 64 años",
+                      "65 a 69 años",
+                      "70 a 74 años",
+                      "75 a 79 años",
+                      "80 años y más",
+                      "total")
+
+ind_ep <- base_ep_2019_adultos_m_tot %>% 
+                  gather( key = grupo_edad,
+                          value= n,
+                          4:9) 
+  
+
+
+
+
+```
+##Mortalildad por caídas
 ```{r caídas}
 #cod caídas:
 #W00-W19
@@ -1451,7 +1668,6 @@ colnames(base_caidas_2019_adultos_m_tot) <- c("ano",
                       "65 a 69 años",
                       "70 a 74 años",
                       "75 a 79 años",
-              
                       "80 años y más",
                       "total")
 
@@ -1461,31 +1677,27 @@ ind_caidas <- base_caidas_2019_adultos_m_tot %>%
                           4:9) 
   
 #uno muertes con poblacion
-str(ind_diabetes)
-str( pop_adultos_2019_ajust)
-ind_caidas$sexo <- as.character(ind_caidas$sexo)
-ind_caidas_final <-ind_caidas##esto despues sacarlo
-ind_diabetes_tabla <- left_join (ind_caidas,
-  pop_adultos_2019_ajust,
-  by = c("juri" = "CodProv", "grupo_edad","sexo"),
-  copy = FALSE,
-  suffix = c(".x", ".y"),
-  keep = FALSE
-)
+#str(ind_diabetes)
+#str( pop_adultos_2019_ajust)
+#ind_caidas$sexo <- as.character(ind_caidas$sexo)
+#ind_caidas_final <-ind_caidas##esto despues sacarlo
+#ind_diabetes_tabla <- left_join (ind_caidas,
+#  pop_adultos_2019_ajust,
+#  by = c("juri" = "CodProv", "grupo_edad","sexo"),
+#  copy = FALSE,
+#  suffix = c(".x", ".y"),
+#  keep = FALSE
+#)
 
-ind_diabetes_final <- ind_diabetes_tabla %>% 
-  mutate(indicador = round((n/pop*10000),2))
-
-```
-
-
-
-```{r coberturas SRP1}
+#ind_diabetes_final <- ind_diabetes_tabla %>% 
+#  mutate(indicador = round((n/pop*10000),2))
 
 ```
+# Ajustes de tasas de mortalidad
 
-```{r ajuste de tasas enf circ}
-#ajuste de ind_enfcircu 
+## Mortalidad por diabetes ajustada por edad y sexo
+```{r ajuste de tasas diabetes}
+#ajuste de ind_diabetes
 
 ####tabla de ejemplo
 ##poblaciones
@@ -1523,19 +1735,110 @@ poblaciones$gr_edad <- recode_factor(poblaciones$gr_edad,
 
 
 poblaciones$sexo <- as.character(poblaciones$sexo)
-tasas <- left_join(ind_enfcircu, poblaciones, by=c("grupo_edad"="gr_edad",# MACHEO POR GR. EDAD, PROV Y AÑO PARA AGREGAR POBLACIONES (OMITIR SI YA ESTAN EN LA BASE)
+tasas <- left_join(ind_diabetes, poblaciones, by=c("grupo_edad"="gr_edad",# MACHEO POR GR. EDAD, PROV Y AÑO PARA AGREGAR POBLACIONES (OMITIR SI YA ESTAN EN LA BASE)
                                                         "juri"="provincia",
                                                         "sexo",
                                                         "ano"="FECDEF_ano") )
 
-ind_enfcircu <- ind_enfcircu %>% filter(sexo!="9")
+ind_diabetes <- ind_diabetes %>% filter(sexo!="9")
 ###pob estandar
 
 pob.estandar <- read.csv("pob.estandar.csv",sep=";", encoding = "UTF-8")# ESTA POBLACION ESTANDAR ESTA POR EDAD Y NO POR SEXO, PORLO TANTO EL AJUSTE SE PUEDE HACER SOLO POR EDAD (NO POR SEXO). pARA AJUSTAR POR LAS DOS VARIABLES A LA VEZ NECESITAMOS LA POB ESTANDAR POR SEXO QUE EN ESTE MOMENTO NO LA TENGO.
 pob.estandar$sexo <- as.character(pob.estandar$sexo)
 pob.estandar <- pob.estandar[,1:3]
 
-tasa_ajuste <- left_join(ind_enfcircu,pob.estandar,by=c("sexo","grupo_edad"))# ACA LE TRAIGO POR DERECHA LA POBLACION ESTANDAR, Y HAGO LA UNION SOLO POR GRUPO DE EDAD
+tasa_ajuste <- left_join(ind_diabetes,pob.estandar,by=c("sexo","grupo_edad"))# ACA LE TRAIGO POR DERECHA LA POBLACION ESTANDAR, Y HAGO LA UNION SOLO POR GRUPO DE EDAD
+
+##reemplazo los na por 0 en la variable de n # ESTO SE PUEDE EVITAR LO DEJO POR LAS DUDAS
+tasa_ajuste$n[is.na(tasa_ajuste$n)] = 0
+
+
+##na en edad
+na_edad <- tasa_ajuste[is.na(tasa_ajuste$grupo_edad),c(1,2,3,5)]
+na_edad
+#quito las filas donde edad es na
+tasa_ajuste <- tasa_ajuste %>% filter(!is.na(grupo_edad),!is.na(pob.estandar))# ESTAS LINEAS REVISAN QUE NO HAYA NA EN NINGUNA CELDA PORQUE SINO LA FUNCION DE AJUSTE ME VA A DAR ERROR
+
+####creo funcion para ajustar tasas todas a la vez
+
+# convert df to data.table, ES UN FORMATO DE TABLA DIFERENTE QUE SE PIDE PARA ESTA FUNCION
+library(data.table)
+setDT(tasa_ajuste)
+# define subgroups
+names(tasa_ajuste)
+group_by<-c( "juri")# defino los agrupamientos, si tengo mas de un año puedo agregar la variable año aca.
+
+#ajuste
+library(epitools)
+
+# ageadjust.direct by subgroups. The trick is to include as.lst()
+ajuste <- tasa_ajuste[, as.list(epitools::ageadjust.direct(count = n,# aca n de muertes
+                                                           pop = pop,# aca la pob
+                                                           rate = n/pop,# aca la tasa o directamente la div
+                                                           stdpop = pob.estandar)),
+                      by=group_by]# aca la pob estandar
+
+# aca aplico factor de expansion a cada tasa, la funcion te devuelve la cruda y la ajustada y el IC para la ajustada
+ajuste$crude.rate <- ajuste$crude.rate*100000
+ajuste$adj.rate <- ajuste$adj.rate*100000
+ajuste$lci <- ajuste$lci *100000
+ajuste$uci <- ajuste$uci *100000
+# Print table
+knitr::kable(ajuste)
+
+```
+## Mortalidad por enfermedades del circulatorio ajustada por edad y sexo
+```{r ajuste de tasas enf circ}
+#ajuste de ind_ccu 
+
+####tabla de ejemplo
+##poblaciones
+
+poblaciones <- read.csv("poblacion. 1997-2019.csv", sep=";")# este archivo lo deje en la carpeta
+names(poblaciones)
+poblaciones <- poblaciones%>% 
+  dplyr::select(-trienio) 
+
+
+##union poblaciones
+
+levels(as.factor(poblaciones$gr_edad))## con esta parte chequear que los nombres de los grupos de edad de tu base que esten escritos igual. si no cambiarlos abajo en la funcion "recode-FACTOR"
+poblaciones$gr_edad <- as.factor(poblaciones$gr_edad)
+poblaciones$gr_edad <- recode_factor(poblaciones$gr_edad, 
+                                             POB0004="0 a 4 años",
+                                             POB0509= "05 a 9 años",
+                                             POB1014="10 a 14 años",
+                                             POB1519="15 a 19 años",
+                                             POB2024="20 a 24 años",
+                                             POB2529="25 a 29 años",
+                                             POB3034="30 a 34 años",
+                                             POB3539="35 a 39 años",
+                                             POB4044="40 a 44 años",
+                                             POB4549="45 a 49 años",
+                                             POB5054="50 a 54 años",
+                                             POB5559="55 a 59 años",
+                                             POB6064="60 a 64 años",
+                                             POB6569="65 a 69 años",
+                                             POB7074="70 a 74 años",
+                                             POB7579="75 a 79 años",
+                                             POB80MAS= "80 años y más",
+                                             POBTOT="POBTOT"
+                                             )
+
+
+poblaciones$sexo <- as.character(poblaciones$sexo)
+tasas <- left_join(ind_ccu, poblaciones, by=c("grupo_edad"="gr_edad",# MACHEO POR GR. EDAD, PROV Y AÑO PARA AGREGAR POBLACIONES (OMITIR SI YA ESTAN EN LA BASE)
+                                                        "juri"="provincia",
+                                                                                                                "ano"="FECDEF_ano") )
+
+#ind_ccu <- ind_enfcircu %>% filter(sexo!="9")
+###pob estandar
+
+pob.estandar <- read.csv("pob.estandar.csv",sep=";", encoding = "UTF-8")# ESTA POBLACION ESTANDAR ESTA POR EDAD Y NO POR SEXO, PORLO TANTO EL AJUSTE SE PUEDE HACER SOLO POR EDAD (NO POR SEXO). pARA AJUSTAR POR LAS DOS VARIABLES A LA VEZ NECESITAMOS LA POB ESTANDAR POR SEXO QUE EN ESTE MOMENTO NO LA TENGO.
+#pob.estandar$sexo <- as.character(pob.estandar$sexo)
+#pob.estandar <- pob.estandar[,1:3]
+
+tasa_ajuste <- left_join(ind_ccu,pob.estandar,by=c("grupo_edad"))# ACA LE TRAIGO POR DERECHA LA POBLACION ESTANDAR, Y HAGO LA UNION SOLO POR GRUPO DE EDAD
 
 ##reemplazo los na por 0 en la variable de n # ESTO SE PUEDE EVITAR LO DEJO POR LAS DUDAS
 tasa_ajuste$n[is.na(tasa_ajuste$n)] = 0
@@ -1575,9 +1878,203 @@ ajuste$uci <- ajuste$uci *100000
 knitr::kable(ajuste)
 
 ```
+## Mortalidad por cáncer de cérvix ajustada por edad
+```{r ajuste de tasas cáncer cérvix}
 
+```
+## Mortalidad por deficiencias nutricionales ajustada por edad y sexo
+```{r ajuste de tasas def nutricionales}
+#ajuste de ind_dn 
+
+####tabla de ejemplo
+##poblaciones
+
+poblaciones <- read.csv("poblacion. 1997-2019.csv", sep=";")# este archivo lo deje en la carpeta
+names(poblaciones)
+poblaciones <- poblaciones%>% 
+  dplyr::select(-trienio) 
+
+
+##union poblaciones
+
+levels(as.factor(poblaciones$gr_edad))## con esta parte chequear que los nombres de los grupos de edad de tu base que esten escritos igual. si no cambiarlos abajo en la funcion "recode-FACTOR"
+poblaciones$gr_edad <- as.factor(poblaciones$gr_edad)
+poblaciones$gr_edad <- recode_factor(poblaciones$gr_edad, 
+                                             POB0004="0 a 4 años",
+                                             POB0509= "05 a 9 años",
+                                             POB1014="10 a 14 años",
+                                             POB1519="15 a 19 años",
+                                             POB2024="20 a 24 años",
+                                             POB2529="25 a 29 años",
+                                             POB3034="30 a 34 años",
+                                             POB3539="35 a 39 años",
+                                             POB4044="40 a 44 años",
+                                             POB4549="45 a 49 años",
+                                             POB5054="50 a 54 años",
+                                             POB5559="55 a 59 años",
+                                             POB6064="60 a 64 años",
+                                             POB6569="65 a 69 años",
+                                             POB7074="70 a 74 años",
+                                             POB7579="75 a 79 años",
+                                             POB80MAS= "80 años y más",
+                                             POBTOT="POBTOT"
+                                             )
+
+
+poblaciones$sexo <- as.character(poblaciones$sexo)
+ind_dn$sexo <- as.character(ind_dn$sexo)
+ind_dn <- left_join(ind_dn, poblaciones, by=c("grupo_edad"="gr_edad",# MACHEO POR GR. EDAD, PROV Y AÑO PARA AGREGAR POBLACIONES (OMITIR SI YA ESTAN EN LA BASE)
+                                                        "juri"="provincia",
+                                                        "sexo",
+                                                        "ano"="FECDEF_ano") )
+
+ind_dn <- ind_dn %>% filter(sexo!="9")
+###pob estandar
+
+pob.estandar <- read.csv("pob.estandar.csv",sep=";", encoding = "UTF-8")# ESTA POBLACION ESTANDAR ESTA POR EDAD Y NO POR SEXO, PORLO TANTO EL AJUSTE SE PUEDE HACER SOLO POR EDAD (NO POR SEXO). pARA AJUSTAR POR LAS DOS VARIABLES A LA VEZ NECESITAMOS LA POB ESTANDAR POR SEXO QUE EN ESTE MOMENTO NO LA TENGO.
+pob.estandar$sexo <- as.character(pob.estandar$sexo)
+pob.estandar <- pob.estandar[,1:3]
+
+tasa_ajuste <- left_join(ind_dn,pob.estandar,by=c("sexo","grupo_edad"))# ACA LE TRAIGO POR DERECHA LA POBLACION ESTANDAR, Y HAGO LA UNION SOLO POR GRUPO DE EDAD
+
+##reemplazo los na por 0 en la variable de n # ESTO SE PUEDE EVITAR LO DEJO POR LAS DUDAS
+tasa_ajuste$n[is.na(tasa_ajuste$n)] = 0
+
+
+##na en edad
+na_edad <- tasa_ajuste[is.na(tasa_ajuste$grupo_edad),c(1,2,3,5)]
+na_edad
+#quito las filas donde edad es na
+tasa_ajuste <- tasa_ajuste %>% filter(!is.na(grupo_edad),!is.na(pob))# ESTAS LINEAS REVISAN QUE NO HAYA NA EN NINGUNA CELDA PORQUE SINO LA FUNCION DE AJUSTE ME VA A DAR ERROR
+
+####creo funcion para ajustar tasas todas a la vez
+
+# convert df to data.table, ES UN FORMATO DE TABLA DIFERENTE QUE SE PIDE PARA ESTA FUNCION
+library(data.table)
+setDT(tasa_ajuste)
+class(tasa_ajuste)
+# define subgroups
+names(tasa_ajuste)
+group_by<-c( "juri")# defino los agrupamientos, si tengo mas de un año puedo agregar la variable año aca.
+
+#ajuste
+library(epitools)# 
+
+# ageadjust.direct by subgroups. The trick is to include as.lst()
+ajuste <- tasa_ajuste[, as.list(epitools::ageadjust.direct(count = n,# aca n de muertes
+                                                           pop = pob,# aca la pob
+                                                           rate = n/pob,# aca la tasa o directamente la div
+                                                           stdpop = pob.estandar)),
+                      by=group_by]# aca la pob estandar
+
+# aca aplico factor de expansion a cada tasa, la funcion te devuelve la cruda y la ajustada y el IC para la ajustada
+ajuste$crude.rate <- ajuste$crude.rate*100000
+ajuste$adj.rate <- ajuste$adj.rate*100000
+ajuste$lci <- ajuste$lci *100000
+ajuste$uci <- ajuste$uci *100000
+# Print table
+knitr::kable(ajuste)
+
+
+```
+## Mortalidad por enf crónicas respi inferiores ajustada por edad y sexo
+```{r ajuste de tasas enf crónicas respi inferiores}
+#ajuste de ind_ep
+
+####tabla de ejemplo
+##poblaciones
+
+poblaciones <- read.csv("poblacion. 1997-2019.csv", sep=";")# este archivo lo deje en la carpeta
+names(poblaciones)
+poblaciones <- poblaciones%>% 
+  dplyr::select(-trienio) 
+
+
+##union poblaciones
+
+levels(as.factor(poblaciones$gr_edad))## con esta parte chequear que los nombres de los grupos de edad de tu base que esten escritos igual. si no cambiarlos abajo en la funcion "recode-FACTOR"
+poblaciones$gr_edad <- as.factor(poblaciones$gr_edad)
+poblaciones$gr_edad <- recode_factor(poblaciones$gr_edad, 
+                                             POB0004="0 a 4 años",
+                                             POB0509= "05 a 9 años",
+                                             POB1014="10 a 14 años",
+                                             POB1519="15 a 19 años",
+                                             POB2024="20 a 24 años",
+                                             POB2529="25 a 29 años",
+                                             POB3034="30 a 34 años",
+                                             POB3539="35 a 39 años",
+                                             POB4044="40 a 44 años",
+                                             POB4549="45 a 49 años",
+                                             POB5054="50 a 54 años",
+                                             POB5559="55 a 59 años",
+                                             POB6064="60 a 64 años",
+                                             POB6569="65 a 69 años",
+                                             POB7074="70 a 74 años",
+                                             POB7579="75 a 79 años",
+                                             POB80MAS= "80 años y más",
+                                             POBTOT="POBTOT"
+                                             )
+
+
+poblaciones$sexo <- as.character(poblaciones$sexo)
+ind_ep$sexo  <- as.character(ind_ep$sexo)
+ind_ep <- left_join(ind_ep, poblaciones, by=c("grupo_edad"="gr_edad",# MACHEO POR GR. EDAD, PROV Y AÑO PARA AGREGAR POBLACIONES (OMITIR SI YA ESTAN EN LA BASE)
+                                                        "juri"="provincia",
+                                                        "sexo",
+                                                        "ano"="FECDEF_ano") )
+
+ind_ep <- ind_ep %>% filter(sexo!="9")
+###pob estandar
+
+pob.estandar <- read.csv("pob.estandar.csv",sep=";", encoding = "UTF-8")# ESTA POBLACION ESTANDAR ESTA POR EDAD Y NO POR SEXO, PORLO TANTO EL AJUSTE SE PUEDE HACER SOLO POR EDAD (NO POR SEXO). pARA AJUSTAR POR LAS DOS VARIABLES A LA VEZ NECESITAMOS LA POB ESTANDAR POR SEXO QUE EN ESTE MOMENTO NO LA TENGO.
+pob.estandar$sexo <- as.character(pob.estandar$sexo)
+pob.estandar <- pob.estandar[,1:3]
+
+tasa_ajuste <- left_join(ind_ep,pob.estandar,by=c("sexo","grupo_edad"))# ACA LE TRAIGO POR DERECHA LA POBLACION ESTANDAR, Y HAGO LA UNION SOLO POR GRUPO DE EDAD
+
+##reemplazo los na por 0 en la variable de n # ESTO SE PUEDE EVITAR LO DEJO POR LAS DUDAS
+tasa_ajuste$n[is.na(tasa_ajuste$n)] = 0
+
+
+##na en edad
+na_edad <- tasa_ajuste[is.na(tasa_ajuste$grupo_edad),c(1,2,3,5)]
+na_edad
+#quito las filas donde edad es na
+tasa_ajuste <- tasa_ajuste %>% filter(!is.na(grupo_edad),!is.na(pob))# ESTAS LINEAS REVISAN QUE NO HAYA NA EN NINGUNA CELDA PORQUE SINO LA FUNCION DE AJUSTE ME VA A DAR ERROR
+
+####creo funcion para ajustar tasas todas a la vez
+
+# convert df to data.table, ES UN FORMATO DE TABLA DIFERENTE QUE SE PIDE PARA ESTA FUNCION
+library(data.table)
+setDT(tasa_ajuste)
+class(tasa_ajuste)
+# define subgroups
+names(tasa_ajuste)
+group_by<-c( "juri")# defino los agrupamientos, si tengo mas de un año puedo agregar la variable año aca.
+
+#ajuste
+library(epitools)
+
+# ageadjust.direct by subgroups. The trick is to include as.lst()
+ajuste <- tasa_ajuste[, as.list(epitools::ageadjust.direct(count = n,# aca n de muertes
+                                                           pop = pob,# aca la pob
+                                                           rate = n/pob,# aca la tasa o directamente la div
+                                                           stdpop = pob.estandar)),
+                      by=group_by]# aca la pob estandar
+
+# aca aplico factor de expansion a cada tasa, la funcion te devuelve la cruda y la ajustada y el IC para la ajustada
+ajuste$crude.rate <- ajuste$crude.rate*100000
+ajuste$adj.rate <- ajuste$adj.rate*100000
+ajuste$lci <- ajuste$lci *100000
+ajuste$uci <- ajuste$uci *100000
+# Print table
+knitr::kable(ajuste)
+
+```
+
+## Mortalidad por caídas ajustada por edad y sexo
 ```{r ajuste de tasas caidas}
-#ajuste de ind_enfcircu 
+#ajuste de ind_caidas
 
 ####tabla de ejemplo
 ##poblaciones
