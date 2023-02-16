@@ -11,7 +11,7 @@ editor_options:
   chunk_output_type: inline
 ---
 # Resumen
-Este informe fue realizado con el objetivo bla bla...
+Este informe fue realizado con el objetivo de realizar un análisis de desigualdades para Argentina siguiendo la metodología desarrollada en el ANESS. Para dicho análisis se deben calcular indicadores de salud de acuerdo a los distintos grupos etarios.
 
 # Indicadores
 
@@ -45,119 +45,131 @@ library(ggpubr)
 library(gt)
 library(gtExtras)
 library(svglite)
+
+##genero base con id y nombre de provincia
+str(base_nacidos_vivos)
+id_nombre <- base_nacidos_vivos %>% 
+  select(jurisdiccion_de_residencia_id, jurisdicion_residencia_nombre) %>% 
+  group_by(jurisdiccion_de_residencia_id, jurisdicion_residencia_nombre) %>% 
+  summarise(n=n())
+
+write_xlsx(id_nombre,"id_nombre.xlsx")
+
 ```
 # Coberturas SRP1
 ```{r coberturas SRP1}
-cob_enero <- read_xlsx("cob_muni_pormes_2022_ESP.xlsx",
-                       sheet = "enero", range ="A1:K379") 
+#calculamos las coberturas pero dan valores muy bajos, finalmente se utilizaron los valores encontrados en la página de la DICEI, pero se deja aquí el código construido en caso que sirva a futuro.
 
-cob_febrero <- read_xlsx("cob_muni_pormes_2022_ESP.xlsx",
-                       sheet = "febrero", range ="A1:K379")
+#cob_enero <- read_xlsx("cob_muni_pormes_2022_ESP.xlsx",
+#                       sheet = "enero", range ="A1:K379") 
 
-cob_marzo <- read_xlsx("cob_muni_pormes_2022_ESP.xlsx",
-                       sheet = "marzo", range ="A1:K379")
+#cob_febrero <- read_xlsx("cob_muni_pormes_2022_ESP.xlsx",
+#                       sheet = "febrero", range ="A1:K379")
 
-cob_abril <- read_xlsx("cob_muni_pormes_2022_ESP.xlsx",
-                       sheet = "abril", range ="A1:K379")
+#cob_marzo <- read_xlsx("cob_muni_pormes_2022_ESP.xlsx",
+#                       sheet = "marzo", range ="A1:K379")
 
-cob_mayo <- read_xlsx("cob_muni_pormes_2022_ESP.xlsx",
-                       sheet = "mayo", range ="A1:K379")
+#cob_abril <- read_xlsx("cob_muni_pormes_2022_ESP.xlsx",
+#                       sheet = "abril", range ="A1:K379")
 
-cob_junio <- read_xlsx("cob_muni_pormes_2022_ESP.xlsx",
-                       sheet = "junio", range ="A1:K379")
+#cob_mayo <- read_xlsx("cob_muni_pormes_2022_ESP.xlsx",
+#                       sheet = "mayo", range ="A1:K379")
 
-cob_julio <- read_xlsx("cob_muni_pormes_2022_ESP.xlsx",
-                       sheet = "julio", range ="A1:K379")
+#cob_junio <- read_xlsx("cob_muni_pormes_2022_ESP.xlsx",
+#                       sheet = "junio", range ="A1:K379")
 
-cob_agosto <- read_xlsx("cob_muni_pormes_2022_ESP.xlsx",
-                       sheet = "agosto", range ="A1:K379")
+#cob_julio <- read_xlsx("cob_muni_pormes_2022_ESP.xlsx",
+#                       sheet = "julio", range ="A1:K379")
 
-cob_septiembre <- read_xlsx("cob_muni_pormes_2022_ESP.xlsx",
-                       sheet = "septiembre", range ="A1:K379")
+#cob_agosto <- read_xlsx("cob_muni_pormes_2022_ESP.xlsx",
+#                       sheet = "agosto", range ="A1:K379")
 
-cob_octubre <- read_xlsx("cob_muni_pormes_2022_ESP.xlsx",
-                       sheet = "octubre", range ="A1:K379")
+#cob_septiembre <- read_xlsx("cob_muni_pormes_2022_ESP.xlsx",
+#                       sheet = "septiembre", range ="A1:K379")
 
-cob_noviembre <- read_xlsx("cob_muni_pormes_2022_ESP.xlsx",
-                       sheet = "noviembre", range ="A1:K379")
+#cob_octubre <- read_xlsx("cob_muni_pormes_2022_ESP.xlsx",
+#                       sheet = "octubre", range ="A1:K379")
 
-cob_diciembre <- read_xlsx("cob_muni_pormes_2022_ESP.xlsx",
-                       sheet = "diciembre", range ="A1:K379")
+#cob_noviembre <- read_xlsx("cob_muni_pormes_2022_ESP.xlsx",
+#                       sheet = "noviembre", range ="A1:K379")
+
+#cob_diciembre <- read_xlsx("cob_muni_pormes_2022_ESP.xlsx",
+#                       sheet = "diciembre", range ="A1:K379")
 
 
-cob_enero <- cob_enero %>% 
-  select(juri, muni, dosis)
+#cob_enero <- cob_enero %>% 
+#  select(juri, muni, dosis)
 
-cob_febrero <- cob_febrero %>% 
-  select(juri, muni, dosis)
+#cob_febrero <- cob_febrero %>% 
+#  select(juri, muni, dosis)
 
-cob_marzo <- cob_marzo %>% 
-  select(juri, muni, dosis)
+#cob_marzo <- cob_marzo %>% 
+#  select(juri, muni, dosis)
 
-cob_abril <- cob_abril %>% 
-  select(juri, muni, dosis)
+#cob_abril <- cob_abril %>% 
+#  select(juri, muni, dosis)
 
-cob_mayo <- cob_mayo %>% 
-  select(juri, muni, dosis)
+#cob_mayo <- cob_mayo %>% 
+#  select(juri, muni, dosis)
 
-cob_junio <- cob_junio %>% 
-  select(juri, muni, dosis)
+#cob_junio <- cob_junio %>% 
+#  select(juri, muni, dosis)
 
-cob_julio <- cob_julio %>% 
-  select(juri, muni, dosis)
+#cob_julio <- cob_julio %>% 
+#  select(juri, muni, dosis)
 
-cob_agosto <- cob_agosto %>% 
-  select(juri, muni, dosis)
+#cob_agosto <- cob_agosto %>% 
+#  select(juri, muni, dosis)
 
-cob_septiembre <- cob_septiembre %>% 
-  select(juri, muni, dosis)
+#cob_septiembre <- cob_septiembre %>% 
+#  select(juri, muni, dosis)
 
-cob_octubre <- cob_octubre %>% 
-  select(juri, muni, dosis)
+#cob_octubre <- cob_octubre %>% 
+#  select(juri, muni, dosis)
 
-cob_noviembre <- cob_noviembre %>% 
-  select(juri, muni, dosis)
+#cob_noviembre <- cob_noviembre %>% 
+#  select(juri, muni, dosis)
 
-cob_diciembre <- cob_diciembre %>% 
-  select(juri, muni, dosis)
+#cob_diciembre <- cob_diciembre %>% 
+#  select(juri, muni, dosis)
 
-lista <- list(cob_enero, cob_febrero, cob_marzo, cob_abril, cob_mayo, cob_junio, cob_julio, cob_agosto, cob_septiembre, cob_octubre, cob_noviembre, cob_diciembre)
+#lista <- list(cob_enero, cob_febrero, cob_marzo, cob_abril, cob_mayo, cob_junio, cob_julio, cob_agosto, cob_septiembre, cob_octubre, cob_noviembre, cob_diciembre)
 
-coberturas <- lista %>% 
-  reduce(inner_join, by=c("juri", "muni"))
+#coberturas <- lista %>% 
+#  reduce(inner_join, by=c("juri", "muni"))
 
-coberturas[coberturas$juri=="CABA",1] <- "Ciudad Autónoma de Buenos Aires"
-coberturas[coberturas$juri=="Tierra del Fuego",1] <- "Tierra del Fuego, Antártida e Islas del Atlántico Sur"
+#coberturas[coberturas$juri=="CABA",1] <- "Ciudad Autónoma de Buenos Aires"
+#coberturas[coberturas$juri=="Tierra del Fuego",1] <- "Tierra del Fuego, Antártida e Islas del Atlántico Sur"
 
-columnas <- c("juri", "muni", "enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre")
+#columnas <- c("juri", "muni", "enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre")
 
-colnames(coberturas) <- columnas
+#colnames(coberturas) <- columnas
 
-unique(coberturas$juri)
+#unique(coberturas$juri)
 
-coberturas2 <-  coberturas %>% 
-  mutate(total = rowSums(across(columnas[3:14]),na.rm =T)) %>% 
-  select(juri, muni, total) %>% 
-  group_by(juri) %>% 
-  summarise(n = sum(total)) 
+#coberturas2 <-  coberturas %>% 
+#  mutate(total = rowSums(across(columnas[3:14]),na.rm =T)) %>% 
+#  select(juri, muni, total) %>% 
+#  group_by(juri) %>% 
+#  summarise(n = sum(total)) 
 
 #para el denominador de las coberturas se utilizan los nacidos vivos de año anterior a las dosis aplicadas. En este caso usaremos 2020 por ser el dato más reciente al cual tenemos acceso.
 
-base_nacidos_vivos <- read.csv2("MINSAL - Nacidos vivos 2005-2020 jurisdicción residencia de la madre.csv", encoding="latin1", sep = ",")
+#base_nacidos_vivos <- read.csv2("MINSAL - Nacidos vivos 2005-2020 jurisdicción residencia de la madre.csv", encoding="latin1", sep = ",")
 
 #mirar variables
-str(base_nacidos_vivos)
+#str(base_nacidos_vivos)
 
-bnv <- base_nacidos_vivos %>% 
-  filter(anio == "2020") %>% 
-  select(jurisdicion_residencia_nombre, nacimientos_cantidad) %>% 
-  group_by(jurisdicion_residencia_nombre) %>% 
-  summarise(total= sum(nacimientos_cantidad))
+#bnv <- base_nacidos_vivos %>% 
+#  filter(anio == "2020") %>% 
+#  select(jurisdicion_residencia_nombre, nacimientos_cantidad) %>% 
+#  group_by(jurisdicion_residencia_nombre) %>% 
+#  summarise(total= sum(nacimientos_cantidad))
 
-cob_final <- left_join(bnv, coberturas2, by = c("jurisdicion_residencia_nombre" = "juri"))
+#cob_final <- left_join(bnv, coberturas2, by = c("jurisdicion_residencia_nombre" = "juri"))
 
-cob_final2 <- cob_final %>% 
-  mutate(cobertura = n/total*100)
+#cob_final2 <- cob_final %>% 
+#  mutate(cobertura = n/total*100)
 
 ```
 
@@ -193,7 +205,7 @@ base_mortalidad_materna_quinquenios <- base_mortalidad %>%
                                           )) %>% 
                     filter(!is.na(quinquenio)) %>% 
     group_by(quinquenio,jurisdicion_residencia_nombre) %>% 
-  summarise(suma_quinquenio= sum(cantidad),mean=suma_quinquenio/5) %>% ###cambie la forma de clacular el promedio, si no se entendio preguntame
+  summarise(suma_quinquenio= sum(cantidad),mean=suma_quinquenio/5) %>% ###cambie la forma de calcular el promedio, si no se entendio preguntame
   ungroup()
 
 datatable(base_mortalidad_materna_quinquenios)
@@ -321,7 +333,7 @@ base_nacidos_vivos_1519 <- base_nacidos_vivos %>%
    filter(jurisdicion_residencia_nombre!="Sin Información",!is.na(jurisdicion_residencia_nombre)) %>% 
   ungroup(quinquenio)
 
-#agregto to pais
+#agrego total pais
 
 base_nacidos_vivos_1519_tot <- base_nacidos_vivos %>% 
   mutate(quinquenio = case_when(
@@ -347,7 +359,8 @@ base_nacidos_vivos_1620 <- base_nacidos_vivos %>%
   summarise(suma_quinquenio= sum(nacimientos_cantidad),mean=suma_quinquenio/5) %>% 
    filter(jurisdicion_residencia_nombre!="Sin Información",!is.na(jurisdicion_residencia_nombre)) %>% 
   ungroup(quinquenio)
-#agregto to pais
+
+#agrego total pais
 
 base_nacidos_vivos_1620_tot <- base_nacidos_vivos %>% 
   mutate(quinquenio = case_when(
@@ -393,7 +406,8 @@ datatable(select(RMM_2020,"jurisdicion_residencia_nombre" ,"RMM_suma_20"),captio
 
 write_xlsx(RMM_2019,"RMM2019.xlsx")
 write_xlsx(RMM_2020,"RMM2020.xlsx")
-
+write_xlsx(base_nacidos_vivos_1519,"base_nacidos_vivos_1519.xlsx")
+write_xlsx(base_nacidos_vivos_1620,"base_nacidos_vivos_1620.xlsx")
 ```
 
 ```{r graficos rmm, echo=TRUE, fig.height=10, fig.width=12}
@@ -454,7 +468,7 @@ ggarrange(plot1, plot2,
 
 
 # % de nacidos vivos con bajo peso al nacer:
-- Se calcula como: Número de nacidos vivos con bajo peso de un año y prov/numero total de nacidos vivos de un año y prov.
+- Se calcula como: Número de nacidos vivos con bajo peso de un año y juri/numero total de nacidos vivos de un año y juri
 - Fuentes: base nacidos vivos
 - Indicador construido para 2019 y 2020
 
@@ -494,10 +508,29 @@ datatable(filter(indicador_bajopesoalnacer, !is.na(jurisdicion_residencia_nombre
           )
 write_xlsx(indicador_bajopesoalnacer,"indicador_bajopesoalnacer.xlsx")
 
+str(base_nacidos_vivos)
+nacidos_vivos_2019 <- base_nacidos_vivos %>% 
+  select(anio, jurisdicion_residencia_nombre, nacimientos_cantidad) %>% 
+  filter(anio=="2019") %>% 
+  group_by(jurisdicion_residencia_nombre) %>% 
+  summarise(sum(nacimientos_cantidad))
+
+write_xlsx(nacidos_vivos_2019,"nacidos_vivos_2019.xlsx")
+
+nacidos_vivos_2020 <- base_nacidos_vivos %>% 
+  select(anio, jurisdicion_residencia_nombre, nacimientos_cantidad) %>% 
+  filter(anio=="2020") %>% 
+  group_by(jurisdicion_residencia_nombre) %>% 
+  summarise(sum(nacimientos_cantidad))
+
+write_xlsx(nacidos_vivos_2020,"nacidos_vivos_2020.xlsx")
+
 ```
 
 # Tasa de mortalidad infantil
-
+- Se calcula como: Número de defunciones de menores de un año en X juri y X año / nacidos vivos en X juri y X año (factor de expansión 1.000)
+- Fuentes: base de tasa de mortalidad infantil
+- Indicador construido para 2019 y 2020
 ```{r , echo=TRUE}
 
 db_mort_infantil <- read.csv("tasa-mortalidad-infantil-deis-1990-2020.csv", sep=";")
@@ -604,8 +637,21 @@ a <- db_mort_infantil2 %>%
       target_col = provincia
     )
 
-a## a esta tabla se le puede mejorar el nombre de las prov 
+## a esta tabla se le puede mejorar el nombre de las prov 
 #gt::gtsave(a, file = "temp.png")
+
+ind_mort_infantil <- db_mort_infantil2 %>% 
+  filter(trienio == "2018 - 2020")
+
+write_xlsx(ind_mort_infantil,"ind_mort_infantil.xlsx")
+
+##hacer trienio de nacidos vivos para denominador de explorador equidad
+trienio_nacviv <- base_nacidos_vivos %>% 
+  select(anio, jurisdicion_residencia_nombre, nacimientos_cantidad) %>% 
+  filter(anio == "2018" | anio == "2019" | anio == "2020") %>% 
+  group_by(anio, jurisdicion_residencia_nombre) %>% 
+  summarise(n = sum(nacimientos_cantidad))
+  mutate(tot = )
 
 ```
  
@@ -1172,8 +1218,8 @@ ind_mortalidad_agresiones <- left_join(mort_nya_agresiones, total_nya,
 
 ###revise hasta aca (velen)
 
-#write_xlsx(ind_mortalidad_suicidios,"ind_mortalidad_suicidios.xlsx")
-#write_xlsx(ind_mortalidad_agresiones,"ind_mortalidad_agresiones.xlsx")
+write_xlsx(ind_mortalidad_suicidios,"ind_mortalidad_suicidios.xlsx")
+write_xlsx(ind_mortalidad_agresiones,"ind_mortalidad_agresiones.xlsx")
 
 
 
